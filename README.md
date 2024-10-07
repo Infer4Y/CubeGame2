@@ -1,7 +1,7 @@
 # CubeGame 2 : The Recubening (Working Title) Maybe
 
 ## Overview
-This is the second, third, or maybe fourteenth, attempt at creating a voxel-based sandbox game with vertical chunks. Side note I do hope I can flesh this out into a game and maybe take it to market, but to be realistic I doubt this will ever make it to itch.io or steam. I am making this game as a learning experience and to have fun. I work full time and often game with friends so I don't have a lot of time to work on this project. I will try to work on this project as much as I can but I can't make any promises. Mainly hoping to fix my mistakes and getting this project up and running.
+This is the second, third, or maybe fourteenth, attempt at creating a voxel-based sandbox game with vertical chunks. Side note I do hope I can flesh this out into a game and maybe take it to market, but to be realistic I doubt this will ever make it to itch.io or steam. I am making this game as a learning experience and to have fun. I work full time and often game with friends, so I don't have a lot of time to work on this project. I will try to work on this project as much as I can, but I can't make any promises. Mainly hoping to fix my mistakes and getting this project up and running.
 
 ## Goal
 This voxel based game is a sandbox game where you can build, explore, and survive. It will have tech and magic aimed to really let people let loose and build, automate, dabble and explore. With possible space exploration and other dimension. And if thats not enough, I hope to add modding support so people can add their own content and share it with others.
