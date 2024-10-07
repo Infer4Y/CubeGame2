@@ -17,5 +17,4 @@ public class BlockModel {
         public Vector3 to;
         public Map<String, String> faces;
     }
-
 }

@@ -59,12 +59,11 @@ public class Chunk implements Serializable {
     }
 
     private float getHeight(double worldX, double worldY, double worldZ) {
-
         float x = OpenSimplex2S.noise2(seed,worldX, worldY);
         float y = OpenSimplex2S.noise2(seed,worldX, worldZ);
         float z = OpenSimplex2S.noise2(seed,worldY, worldZ);
 
-        return Math.abs(OpenSimplex2S.noise4_ImproveXYZ_ImproveXZ(seed, x, y, z, x+y+z));
+        return Math.abs(OpenSimplex2S.noise4_ImproveXYZ_ImproveXZ(seed, worldX,worldY, worldZ, x+y+z));
     }
 
     public Block getBlock(int x, int y, int z) {

@@ -15,6 +15,7 @@ public class BlockRegistry {
     public static Block DIRT_BLOCK;
     public static Block GRASS_BLOCK;
     public static Block STONE_BLOCK;
+    public static Block BRICK_BLOCK;
 
     public static void register(Block block) {
         BLOCKS.put(block.getRegistryName(), block);
@@ -44,12 +45,22 @@ public class BlockRegistry {
             .setBreakable(true)
             .setHardness(1.0f)
             .build());
+
         register(STONE_BLOCK = new Block.Builder()
             .setRegistryName("stone_block")
             .setUnlocalizedName("tile.stone")
             .setSolid(true)
             .setBreakable(true)
             .setHardness(5.0f)
+            .setType(BlockType.STONE)
+            .build());
+
+        register(BRICK_BLOCK = new Block.Builder()
+            .setRegistryName("brick_block")
+            .setUnlocalizedName("tile.brick")
+            .setSolid(true)
+            .setBreakable(true)
+            .setHardness(2.0f)
             .setType(BlockType.STONE)
             .build());
 

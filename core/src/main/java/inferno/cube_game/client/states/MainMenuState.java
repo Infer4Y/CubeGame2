@@ -1,22 +1,19 @@
 package inferno.cube_game.client.states;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 public class MainMenuState extends GameState {
     private Stage stage;
     private Skin skin;
     private TextButton singlePlayerButton;
-    private TextButton optionsButton;
+    private TextButton settingsButton;
     private TextButton exitButton;
 
     public MainMenuState(SpriteBatch batch) {
@@ -36,7 +33,7 @@ public class MainMenuState extends GameState {
 
         // Create buttons
         singlePlayerButton = new TextButton("Single Player", skin);
-        optionsButton = new TextButton("Options", skin);
+        settingsButton = new TextButton("Options", skin);
         exitButton = new TextButton("Exit", skin);
 
         // Add listeners to buttons
@@ -47,9 +44,9 @@ public class MainMenuState extends GameState {
             return true;
         });
 
-        optionsButton.addListener(event -> {
-            if (optionsButton.isPressed()) {
-                // GameStateManager.setState(new OptionsState(batch)); // Uncomment when implemented
+        settingsButton.addListener(event -> {
+            if (settingsButton.isPressed()) {
+                GameStateManager.setState(new SettingsState(batch)); // Uncomment when implemented
             }
             return true;
         });
@@ -69,7 +66,7 @@ public class MainMenuState extends GameState {
 
         // Add buttons to the table
         table.add(singlePlayerButton).pad(2).width(200f).height(50f).center().row();
-        table.add(optionsButton).fillX().pad(2).height(50f).center().row();
+        table.add(settingsButton).fillX().pad(2).height(50f).center().row();
         table.add(exitButton).fillX().pad(2).height(50f).center().row();
 
         // Add the table to the stage
@@ -81,6 +78,7 @@ public class MainMenuState extends GameState {
         camera.viewportWidth = Gdx.graphics.getWidth();
         camera.viewportHeight = Gdx.graphics.getHeight();
         camera.update();
+        stage.getViewport().update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
         batch.begin();
 
         // Render the stage, which contains the buttons

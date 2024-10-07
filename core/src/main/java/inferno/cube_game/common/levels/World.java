@@ -12,7 +12,7 @@ import java.util.HashSet;
 public class World {
     private ConcurrentHashMap<String, Chunk> loadedChunks;
     private final ExecutorService chunkGeneratorExecutor;
-    private int chunkLoadRadius = 17; // Number of chunks to load around the player (in all directions)
+    private int chunkLoadRadius = 6; // Number of chunks to load around the player (in all directions)
     private long seed = System.currentTimeMillis(); // Seed for the world generation
 
     public World() {

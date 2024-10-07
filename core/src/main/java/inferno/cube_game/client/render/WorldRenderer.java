@@ -96,7 +96,7 @@ public class WorldRenderer {
     }
 
     private void updatePlayer(Camera camera, float deltaTime, Vector3 movementInput) {
-        applyGravity(deltaTime);
+        //applyGravity(deltaTime);
 
         // Get movement based on camera direction
         Vector3 forward = new Vector3(camera.direction).nor().scl(movementInput.z);
@@ -106,15 +106,6 @@ public class WorldRenderer {
         // Compute new feet position
         Vector3 newPosition = feetPosition.cpy().add(movement);
 
-        // Bounding box at feetPosition
-        BoundingBox playerBB = getPlayerBoundingBox(feetPosition);
-
-        // Collision handling
-        if (checkCollisionWithWorld(newPosition, playerBB)) {
-            newPosition = resolveCollisionWithWorld(newPosition, playerBB);
-        }
-
-        // Update the player's feet position
         feetPosition.set(newPosition);
 
         // Set the camera position to feetPosition + eyeOffset
@@ -122,14 +113,6 @@ public class WorldRenderer {
         camera.update();
 
         // Jumping logic, ground check, etc.
-
-        if (checkCollisionWithWorld(feetPosition, playerBB)) {
-            feetPosition.y = getGroundHeight(feetPosition); // Snap feet to the ground
-            velocity.y = 0;
-            isGrounded = true;
-        } else {
-            isGrounded = false;
-        }
 
         handleJumping();
 
@@ -159,162 +142,6 @@ public class WorldRenderer {
 
     private boolean isJumpKeyPressed() {
         return Gdx.input.isKeyPressed(Input.Keys.SPACE);
-    }
-
-    private float getGroundHeight(Vector3 playerPosition) {
-        int chunkX = (int) (playerPosition.x / Chunk.CHUNK_SIZE);
-        int chunkY = (int) (playerPosition.y / Chunk.CHUNK_SIZE);
-        int chunkZ = (int) (playerPosition.z / Chunk.CHUNK_SIZE);
-
-        for (int cy = chunkY; cy >= 0; cy--) { // Check downwards
-            Chunk chunk = world.getChunk(chunkX, cy, chunkZ);
-            if (chunk == null) continue; // Skip if chunk is not loaded
-
-            for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
-                for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
-                    for (int y = Chunk.CHUNK_SIZE - 1; y >= 0; y--) { // Check from top to bottom
-                        Block block = chunk.getBlock(x, y, z);
-                        if (block != null && block.isSolid()) {
-                            return (cy * Chunk.CHUNK_SIZE + y) + 1; // +1 to get the top of the block
-                        }
-                    }
-                }
-            }
-        }
-
-        return 0; // Default height if no ground found
-    }
-
-    public boolean checkCollisionWithWorld(Vector3 playerPosition, BoundingBox playerBB) {
-        int chunkX = (int) (playerPosition.x / Chunk.CHUNK_SIZE);
-        int chunkY = (int) (playerPosition.y / Chunk.CHUNK_SIZE);
-        int chunkZ = (int) (playerPosition.z / Chunk.CHUNK_SIZE);
-
-        boolean collisionDetected = false;
-
-        for (int cx = chunkX - 1; cx <= chunkX + 1; cx++) {
-            for (int cy = chunkY - 1; cy <= chunkY + 1; cy++) {
-                for (int cz = chunkZ - 1; cz <= chunkZ + 1; cz++) {
-                    Chunk chunk = world.getChunk(cx, cy, cz);
-                    if (chunk == null) continue; // Skip if chunk is not loaded
-
-                    collisionDetected |= checkChunkCollision(chunk, playerBB);
-                }
-            }
-        }
-
-        return collisionDetected;
-    }
-
-    private boolean checkChunkCollision(Chunk chunk, BoundingBox playerBB) {
-        boolean collisionDetected = false;
-
-        for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
-            for (int y = 0; y < Chunk.CHUNK_SIZE; y++) {
-                for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
-                    Block block = chunk.getBlock(x, y, z);
-                    if (block != null && block.isSolid()) {
-                        BoundingBox blockBB = new BoundingBox(
-                            new Vector3(
-                                chunk.getChunkX() * Chunk.CHUNK_SIZE + x,
-                                chunk.getChunkY() * Chunk.CHUNK_SIZE + y,
-                                chunk.getChunkZ() * Chunk.CHUNK_SIZE + z
-                            ),
-                            new Vector3(
-                                chunk.getChunkX() * Chunk.CHUNK_SIZE + x + 1,
-                                chunk.getChunkY() * Chunk.CHUNK_SIZE + y + 1,
-                                chunk.getChunkZ() * Chunk.CHUNK_SIZE + z + 1
-                            )
-                        );
-
-                        if (blockBB.intersects(playerBB)) {
-                            collisionDetected = true;
-                            break; // Exit inner loops on collision
-                        }
-                    }
-                }
-            }
-        }
-
-        return collisionDetected;
-    }
-
-    private Vector3 resolveCollisionWithWorld(Vector3 newPosition, BoundingBox playerBB) {
-        for (int cx = (int) (newPosition.x / Chunk.CHUNK_SIZE) - 1; cx <= (int) (newPosition.x / Chunk.CHUNK_SIZE) + 1; cx++) {
-            for (int cy = (int) (newPosition.y / Chunk.CHUNK_SIZE) - 1; cy <= (int) (newPosition.y / Chunk.CHUNK_SIZE) + 1; cy++) {
-                for (int cz = (int) (newPosition.z / Chunk.CHUNK_SIZE) - 1; cz <= (int) (newPosition.z / Chunk.CHUNK_SIZE) + 1; cz++) {
-                    Chunk chunk = world.getChunk(cx, cy, cz);
-                    if (chunk == null) continue;
-
-                    for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
-                        for (int y = 0; y < Chunk.CHUNK_SIZE; y++) {
-                            for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
-                                Block block = chunk.getBlock(x, y, z);
-                                if (!block.isAir()) {
-                                    BoundingBox blockBB = new BoundingBox(
-                                        new Vector3(chunk.getChunkX() * Chunk.CHUNK_SIZE + x, chunk.getChunkY() * Chunk.CHUNK_SIZE + y, chunk.getChunkZ() * Chunk.CHUNK_SIZE + z),
-                                        new Vector3(chunk.getChunkX() * Chunk.CHUNK_SIZE + x + 1, chunk.getChunkY() * Chunk.CHUNK_SIZE + y + 1, chunk.getChunkZ() * Chunk.CHUNK_SIZE + z + 1)
-                                    );
-
-                                    if (blockBB.intersects(playerBB)) {
-                                        Vector3 collisionNormal = determineCollisionNormal(playerBB, blockBB);
-                                        float penetrationDepth = calculatePenetrationDepth(playerBB, blockBB, collisionNormal);
-                                        resolveCollision(newPosition, playerBB, collisionNormal, penetrationDepth); // Adjust player position
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return newPosition;
-    }
-
-
-    private void resolveCollision(Vector3 newPosition, BoundingBox playerBB, Vector3 collisionNormal, float penetrationDepth) {
-        playerBB.min.add(collisionNormal.scl(penetrationDepth));
-        playerBB.max.add(collisionNormal.scl(penetrationDepth));
-
-        if (collisionNormal.y > 0) {
-            velocity.y = 0; // Reset vertical velocity
-            isGrounded = true; // Player is on the ground
-        } else {
-            isGrounded = false; // Player is in the air
-        }
-    }
-
-    private float calculatePenetrationDepth(BoundingBox playerBB, BoundingBox blockBB, Vector3 collisionNormal) {
-        Vector3 playerSize = new Vector3(playerBB.getDimensions(new Vector3()));
-        Vector3 blockSize = new Vector3(blockBB.getDimensions(new Vector3()));
-
-        float depthX = (collisionNormal.x != 0) ?
-            Math.abs((blockBB.min.x - playerBB.max.x) * collisionNormal.x) :
-            Math.abs((blockBB.max.x - playerBB.min.x) * collisionNormal.x);
-
-        float depthY = (collisionNormal.y != 0) ?
-            Math.abs((blockBB.min.y - playerBB.max.y) * collisionNormal.y) :
-            Math.abs((blockBB.max.y - playerBB.min.y) * collisionNormal.y);
-
-        float depthZ = (collisionNormal.z != 0) ?
-            Math.abs((blockBB.min.z - playerBB.max.z) * collisionNormal.z) :
-            Math.abs((blockBB.max.z - playerBB.min.z) * collisionNormal.z);
-
-        return Math.min(depthX, Math.min(depthY, depthZ)); // Return the smallest depth to resolve
-    }
-
-    private Vector3 determineCollisionNormal(BoundingBox playerBB, BoundingBox blockBB) {
-        Vector3 playerCenter = playerBB.getCenter(new Vector3());
-        Vector3 blockCenter = blockBB.getCenter(new Vector3());
-        Vector3 collisionNormal = new Vector3();
-
-        collisionNormal.set(
-            playerCenter.x - blockCenter.x,
-            playerCenter.y - blockCenter.y,
-            playerCenter.z - blockCenter.z
-        ).nor(); // Normalize to get the direction
-
-        return collisionNormal; // Return the collision normal
     }
 
     private void renderChunks(Camera camera) {
