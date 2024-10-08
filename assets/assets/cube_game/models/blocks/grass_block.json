@@ -13,18 +13,18 @@
         16
       ],
       "faces": {
-        "north":  "texture1",
-        "south":  "texture1",
-        "east":  "texture1",
-        "west": "texture1",
-        "up":  "texture2",
-        "down": "texture0"
+        "north":  "sides",
+        "south":  "sides",
+        "east":  "sides",
+        "west": "sides",
+        "up":  "sides",
+        "down": "bottom"
       }
     }
   ],
   "textures": {
-    "texture0": "cube_game:blocks/dirt.png",
-    "texture1": "cube_game:blocks/grass_sides.png",
-    "texture2": "cube_game:blocks/grass_top.png"
+    "bottom": "cube_game:blocks/dirt.png",
+    "sides": "cube_game:blocks/grass_sides.png",
+    "top": "cube_game:blocks/grass_top.png"
   }
 }

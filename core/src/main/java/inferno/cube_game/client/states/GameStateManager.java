@@ -17,17 +17,19 @@ public class GameStateManager {
     }
 
     public static void update(float deltaTime) {
-        if (currentState != null) {
-            currentState.update(deltaTime);
-        }
+        if (currentState == null) return;
+        currentState.update(deltaTime);
+
     }
 
     public static void render() {
-        if (currentState != null) {
+        if (currentState != null)
             currentState.render();
-        }
 
-        Main.fpsCounter.setText(Main.font, "FPS : " + Gdx.graphics.getFramesPerSecond());
+        Main.fpsCounter.setText(Main.font, "FPS : " + Gdx.graphics.getFramesPerSecond() +
+            " | Delta Time : " + Gdx.graphics.getDeltaTime() +
+            " | Memory Usage : " + Gdx.app.getJavaHeap() / 1024 / 1024 + "MB" +
+            "Position : " + currentState.camera.position.toString());
 
         batch.begin();
         Main.font.draw(batch, Main.fpsCounter, 20f , 20f);
@@ -35,13 +37,12 @@ public class GameStateManager {
     }
 
     public static void resize(int width, int height) {
-        if (currentState != null) {
-            currentState.resize(width, height);
-        }
+        if ((currentState == null)) return;
+        currentState.resize(width, height);
     }
 
     public static void dispose() {
-        if (currentState != null) {
+        if (!(currentState == null)) {
             currentState.dispose();
         }
     }

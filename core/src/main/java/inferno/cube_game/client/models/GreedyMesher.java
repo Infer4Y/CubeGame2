@@ -29,7 +29,7 @@ public class GreedyMesher {
         return chunk.getChunkX() + "," + chunk.getChunkY() + "," + chunk.getChunkZ();
     }
 
-    public synchronized Model generateMesh(Chunk chunk, ModelBuilder modelBuilder) {
+    public Model generateMesh(Chunk chunk, ModelBuilder modelBuilder) {
         String chunkKey = getChunkKey(chunk);
 
         // Check if the model is already cached
@@ -84,13 +84,6 @@ public class GreedyMesher {
 
     private void makeFace(Chunk chunk, ModelBuilder modelBuilder, Element element, Map.Entry<String, String> faceEntry, int x, int y, int z, BlockModel blockModel, Block block, Map<Material, MeshPartBuilder> faceBatches) {
         if (!isFaceVisible(chunk, x, y, z, faceEntry.getKey())) return;
-        String texturePath = blockModel.textures.get(faceEntry.getValue());
-
-        // Material caching
-        Material material = materialCache.computeIfAbsent(block.getRegistryName() + faceEntry.getKey() + texturePath, key ->
-            new Pair<>(block,new Material(TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(texturePath))))
-        ).getValue();
-
 
         // Get the position based on the element's dimensions
         float width = element.to.x - element.from.x;
@@ -103,12 +96,19 @@ public class GreedyMesher {
         float posZ =  element.from.z + z;
 
         // Create the face based on its direction and dynamic dimensions
-        makeFaceFromDirection(modelBuilder, faceEntry, faceBatches, material, x, y, z, posX, width, posY, height, posZ, depth);
+        makeFaceFromDirection(modelBuilder, faceEntry, faceBatches, blockModel, block, x, y, z, posX, width, posY, height, posZ, depth);
     }
 
-    private static void makeFaceFromDirection(ModelBuilder modelBuilder, Map.Entry<String, String> faceEntry, Map<Material, MeshPartBuilder> faceBatches, Material material, int finalX, int finalY, int finalZ, float posX, float width, float posY, float height, float posZ, float depth) {
+    private void makeFaceFromDirection(ModelBuilder modelBuilder, Map.Entry<String, String> faceEntry, Map<Material, MeshPartBuilder> faceBatches, BlockModel blockModel, Block block, int finalX, int finalY, int finalZ, float posX, float width, float posY, float height, float posZ, float depth) {
+        String texturePath = blockModel.textures.get(faceEntry.getValue());
+
+        // Material caching
+        Material material = materialCache.computeIfAbsent(block.getRegistryName() + faceEntry.getKey() + texturePath, key ->
+            new Pair<>(block,new Material(TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(texturePath))))
+        ).getValue();
+
         switch (faceEntry.getKey()) {
-            case "up":
+            case "up" -> {
                 getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
                     posX - width / 2, posY + height / 2, posZ + depth / 2,  // Top-left
                     posX + width / 2, posY + height / 2, posZ + depth / 2,  // Top-right
@@ -117,7 +117,8 @@ public class GreedyMesher {
                     0, 1, 0 // Normal (up)
                 );
                 return;
-            case "down":
+            }
+            case "down" -> {
                 getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
                     posX + width / 2, posY - height / 2, posZ - depth / 2,  // Top-left
                     posX + width / 2, posY - height / 2, posZ + depth / 2,  // Top-right
@@ -126,8 +127,9 @@ public class GreedyMesher {
                     0, -1, 0 // Normal (down)
                 );
                 return;
+            }
             // North face
-            case "north":
+            case "north" -> {
                 getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
                     posX + width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-right
                     posX - width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-left
@@ -136,8 +138,9 @@ public class GreedyMesher {
                     0, 0, -1 // Normal (north)
                 );
                 return;
+            }
             // South face
-            case "south":
+            case "south" -> {
                 getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
                     posX - width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-left
                     posX + width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-right
@@ -146,7 +149,8 @@ public class GreedyMesher {
                     0, 0, 1 // Normal (south)
                 );
                 return;
-            case "west":
+            }
+            case "west" -> {
                 getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
                     posX - width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-right
                     posX - width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-left
@@ -155,7 +159,8 @@ public class GreedyMesher {
                     -1, 0, 0 // Normal (west)
                 );
                 return;
-            case "east":
+            }
+            case "east" -> {
                 getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
                     posX + width / 2, posY - height / 2, posZ + depth / 2,  // bottom-left
                     posX + width / 2, posY - height / 2, posZ - depth / 2,  // bottom-right
@@ -164,10 +169,9 @@ public class GreedyMesher {
                     1, 0, 0 // Normal (east)
                 );
                 return;
-            default:
-                System.out.println("Unknown face: " + faceEntry.getKey());
-                return;
+            }
         }
+        System.out.println("Unknown face: " + faceEntry.getKey());
     }
 
     private static MeshPartBuilder getMeshPartBuilder(ModelBuilder modelBuilder, Map.Entry<String, String> faceEntry, Map<Material, MeshPartBuilder> faceBatches, Material material, int finalX, int finalY, int finalZ) {

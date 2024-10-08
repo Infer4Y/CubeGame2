@@ -7,6 +7,7 @@ import inferno.cube_game.common.blocks.Block;
 import inferno.cube_game.common.registries.BlockRegistry;
 
 import java.io.Serializable;
+import java.util.stream.IntStream;
 
 public class Chunk implements Serializable {
     public static final int CHUNK_SIZE = 16;
@@ -35,11 +36,11 @@ public class Chunk implements Serializable {
     }
 
     private void generateTerrain() {
-        for (int x = 0; x < CHUNK_SIZE; x++) {
-            for (int z = 0; z < CHUNK_SIZE; z++) {
+        IntStream.range(0, CHUNK_SIZE).parallel().forEach(x -> {
+            IntStream.range(0, CHUNK_SIZE).parallel().forEach(z -> {
                 int height = heightMap[x][z]; // Get the height from the precomputed map
 
-                for (int y = 0; y < CHUNK_SIZE; y++) {
+                IntStream.range(0, CHUNK_SIZE).parallel().forEach(y -> {
                     if (chunkY * CHUNK_SIZE + y < height - 1) {
                         if ((y % 2) == 0) setBlock(x, y, z, BlockRegistry.BRICK_BLOCK);
                         else setBlock(x, y, z, BlockRegistry.STONE_BLOCK);
@@ -48,9 +49,9 @@ public class Chunk implements Serializable {
                     } else {
                         setBlock(x, y, z, BlockRegistry.AIR_BLOCK);
                     }
-                }
-            }
-        }
+                });
+            });
+        });
     }
 
     public Block getBlock(int x, int y, int z) {
