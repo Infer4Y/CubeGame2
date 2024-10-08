@@ -40,6 +40,7 @@ public class ChunkRenderer {
         chunkModel = greedyMesher.generateMesh(chunk, modelBuilder);
 
         chunkInstance = new ModelInstance(chunkModel);
+        chunkInstance.transform.setToTranslation(chunk.getChunkX() * Chunk.CHUNK_SIZE, chunk.getChunkY() * Chunk.CHUNK_SIZE, chunk.getChunkZ() * Chunk.CHUNK_SIZE);
     }
 
     public void dispose() {

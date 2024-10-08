@@ -16,9 +16,9 @@ import inferno.cube_game.common.blocks.Block;
 import inferno.cube_game.common.levels.chunks.Chunk;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.IntStream;
 
 public class GreedyMesher {
     private final Map<String, Pair<Block, Material>> materialCache = new ConcurrentHashMap<>();
@@ -34,11 +34,7 @@ public class GreedyMesher {
 
         // Check if the model is already cached
         if (modelCache.containsKey(chunkKey)) {
-            if (modelCache.get(chunkKey).getKey() != chunk) {
-                modelCache.get(chunkKey).getValue().dispose(); // Dispose of the old model
-            } else {
-                return modelCache.get(chunkKey).getValue(); // Return cached model
-            }
+            if (getFromModelCache(chunk, chunkKey)) return modelCache.get(chunkKey).getValue(); // Return cached model
         }
 
         modelBuilder.begin();
@@ -46,118 +42,132 @@ public class GreedyMesher {
 
         int chunkSize = Chunk.CHUNK_SIZE;
         Vector3 chunkPosition = new Vector3(chunk.getChunkX() * chunkSize, chunk.getChunkY() * chunkSize, chunk.getChunkZ() * chunkSize);
+        IntStream.range(0, chunkSize).forEach(x ->
+            IntStream.range(0, chunkSize).forEach(y ->
+                IntStream.range(0, chunkSize).forEach(z -> {
+            Block block = chunk.getBlock(x, y, z);
 
-        for (int x = 0; x < chunkSize; x++) {
-            for (int y = 0; y < chunkSize; y++) {
-                for (int z = 0; z < chunkSize; z++) {
-                    Block block = chunk.getBlock(x, y, z);
+            // Block-level culling: skip if the block is completely surrounded by solid blocks
+            if (canCullBlock(chunk, x, y, z)) return; // Skip this block
+            if (block.isAir()) return; // Skip air blocks
+            if (!block.isSolid()) return; // Skip non-solid blocks
 
-                    // Block-level culling: skip if the block is completely surrounded by solid blocks
-                    if (canCullBlock(chunk, x, y, z)) {
-                        continue; // Skip this block
-                    }
+            BlockModel blockModel = Main.blockModelOven.getBlockModel(block);
 
-                    if (block.isSolid() && !block.isAir()) {
-                        BlockModel blockModel = Main.blockModelOven.getBlockModel(block);
-                        if (blockModel != null && !blockModel.elements.isEmpty()) {
-                            for (Element element : blockModel.elements) {
-                                for (Map.Entry<String, String> faceEntry : element.faces.entrySet()) {
-                                    if (isFaceVisible(chunk, x, y, z, faceEntry.getKey())) {
-                                        String texturePath = blockModel.textures.get(faceEntry.getValue());
+            if (blockModel == null) return;
+            if (blockModel.textures.isEmpty()) return;
+            if (blockModel.elements.isEmpty()) return;
 
-                                        // Material caching
-                                        Material material = materialCache.computeIfAbsent(block.getRegistryName() + faceEntry.getKey() + texturePath, key ->
-                                            new Pair<>(block,new Material(TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(texturePath))))
-                                        ).getValue();
-
-                                        int finalX = x;
-                                        int finalY = y;
-                                        int finalZ = z;
-
-                                        // Get the position based on the element's dimensions
-                                        float width = element.to.x - element.from.x;
-                                        float height = element.to.y - element.from.y;
-                                        float depth = element.to.z - element.from.z;
-
-                                        // Get the position based on the element's dimensions and chunk position
-                                        float posX = chunkPosition.x + element.from.x + x;
-                                        float posY = chunkPosition.y + element.from.y + y;
-                                        float posZ = chunkPosition.z + element.from.z + z;
-
-                                        // Create the face based on its direction and dynamic dimensions
-                                        switch (faceEntry.getKey()) {
-                                            case "up":
-                                                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
-                                                    posX - width / 2, posY + height / 2, posZ + depth / 2,  // Top-left
-                                                    posX + width / 2, posY + height / 2, posZ + depth / 2,  // Top-right
-                                                    posX + width / 2, posY + height / 2, posZ - depth / 2,  // Bottom-right
-                                                    posX - width / 2, posY + height / 2, posZ - depth / 2,  // Bottom-left
-                                                    0, 1, 0 // Normal (up)
-                                                );
-                                                break;
-                                            case "down":
-                                                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
-                                                    posX + width / 2, posY - height / 2, posZ - depth / 2,  // Top-left
-                                                    posX + width / 2, posY - height / 2, posZ + depth / 2,  // Top-right
-                                                    posX - width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-right
-                                                    posX - width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-left
-                                                    0, -1, 0 // Normal (down)
-                                                );
-                                                break;
-                                            // North face
-                                            case "north":
-                                                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
-                                                    posX + width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-right
-                                                    posX - width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-left
-                                                    posX - width / 2, posY + height / 2, posZ - depth / 2,  // Top-left
-                                                    posX + width / 2, posY + height / 2, posZ - depth / 2,  // Top-right
-                                                    0, 0, -1 // Normal (north)
-                                                );
-                                                break;
-                                            // South face
-                                            case "south":
-                                                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
-                                                    posX - width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-left
-                                                    posX + width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-right
-                                                    posX + width / 2, posY + height / 2, posZ + depth / 2,  // Top-right
-                                                    posX - width / 2, posY + height / 2, posZ + depth / 2,  // Top-left
-                                                    0, 0, 1 // Normal (south)
-                                                );
-                                                break;
-                                            case "west":
-                                                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
-                                                    posX - width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-right
-                                                    posX - width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-left
-                                                    posX - width / 2, posY + height / 2, posZ + depth / 2,  // Top-left
-                                                    posX - width / 2, posY + height / 2, posZ - depth / 2,  // Top-right
-                                                    -1, 0, 0 // Normal (west)
-                                                );
-                                                break;
-                                            case "east":
-                                                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
-                                                    posX + width / 2, posY - height / 2, posZ + depth / 2,  // bottom-left
-                                                    posX + width / 2, posY - height / 2, posZ - depth / 2,  // bottom-right
-                                                    posX + width / 2, posY + height / 2, posZ - depth / 2,  // top-right
-                                                    posX + width / 2, posY + height / 2, posZ + depth / 2,  // top-left
-                                                    1, 0, 0 // Normal (east)
-                                                );
-                                                break;
-                                            default:
-                                                System.out.println("Unknown face: " + faceEntry.getKey());
-                                                break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+            elementsToFaces(chunk, modelBuilder, blockModel, x, y, z, block, faceBatches);
+        })));
 
         Model model = modelBuilder.end();
         modelCache.put(chunkKey, new Pair<>(chunk, model)); // Cache the generated model
         return model;
+    }
+
+    private boolean getFromModelCache(Chunk chunk, String chunkKey) {
+        if (modelCache.get(chunkKey).getKey() != chunk) {
+            modelCache.get(chunkKey).getValue().dispose(); // Dispose of the old model
+            return false;
+        }
+        return true;
+    }
+
+    private void elementsToFaces(Chunk chunk, ModelBuilder modelBuilder, BlockModel blockModel, int x, int y, int z, Block block, Map<Material, MeshPartBuilder> faceBatches) {
+        blockModel.elements.forEach(element ->
+            element.faces.entrySet().forEach(faceEntry ->
+                makeFace(chunk, modelBuilder, element, faceEntry, x, y, z, blockModel, block, faceBatches)
+            )
+        );
+    }
+
+    private void makeFace(Chunk chunk, ModelBuilder modelBuilder, Element element, Map.Entry<String, String> faceEntry, int x, int y, int z, BlockModel blockModel, Block block, Map<Material, MeshPartBuilder> faceBatches) {
+        if (!isFaceVisible(chunk, x, y, z, faceEntry.getKey())) return;
+        String texturePath = blockModel.textures.get(faceEntry.getValue());
+
+        // Material caching
+        Material material = materialCache.computeIfAbsent(block.getRegistryName() + faceEntry.getKey() + texturePath, key ->
+            new Pair<>(block,new Material(TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(texturePath))))
+        ).getValue();
+
+
+        // Get the position based on the element's dimensions
+        float width = element.to.x - element.from.x;
+        float height = element.to.y - element.from.y;
+        float depth = element.to.z - element.from.z;
+
+        // Get the position based on the element's dimensions and chunk position
+        float posX =  element.from.x + x;
+        float posY =  element.from.y + y;
+        float posZ =  element.from.z + z;
+
+        // Create the face based on its direction and dynamic dimensions
+        makeFaceFromDirection(modelBuilder, faceEntry, faceBatches, material, x, y, z, posX, width, posY, height, posZ, depth);
+    }
+
+    private static void makeFaceFromDirection(ModelBuilder modelBuilder, Map.Entry<String, String> faceEntry, Map<Material, MeshPartBuilder> faceBatches, Material material, int finalX, int finalY, int finalZ, float posX, float width, float posY, float height, float posZ, float depth) {
+        switch (faceEntry.getKey()) {
+            case "up":
+                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
+                    posX - width / 2, posY + height / 2, posZ + depth / 2,  // Top-left
+                    posX + width / 2, posY + height / 2, posZ + depth / 2,  // Top-right
+                    posX + width / 2, posY + height / 2, posZ - depth / 2,  // Bottom-right
+                    posX - width / 2, posY + height / 2, posZ - depth / 2,  // Bottom-left
+                    0, 1, 0 // Normal (up)
+                );
+                return;
+            case "down":
+                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
+                    posX + width / 2, posY - height / 2, posZ - depth / 2,  // Top-left
+                    posX + width / 2, posY - height / 2, posZ + depth / 2,  // Top-right
+                    posX - width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-right
+                    posX - width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-left
+                    0, -1, 0 // Normal (down)
+                );
+                return;
+            // North face
+            case "north":
+                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
+                    posX + width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-right
+                    posX - width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-left
+                    posX - width / 2, posY + height / 2, posZ - depth / 2,  // Top-left
+                    posX + width / 2, posY + height / 2, posZ - depth / 2,  // Top-right
+                    0, 0, -1 // Normal (north)
+                );
+                return;
+            // South face
+            case "south":
+                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
+                    posX - width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-left
+                    posX + width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-right
+                    posX + width / 2, posY + height / 2, posZ + depth / 2,  // Top-right
+                    posX - width / 2, posY + height / 2, posZ + depth / 2,  // Top-left
+                    0, 0, 1 // Normal (south)
+                );
+                return;
+            case "west":
+                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
+                    posX - width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-right
+                    posX - width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-left
+                    posX - width / 2, posY + height / 2, posZ + depth / 2,  // Top-left
+                    posX - width / 2, posY + height / 2, posZ - depth / 2,  // Top-right
+                    -1, 0, 0 // Normal (west)
+                );
+                return;
+            case "east":
+                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
+                    posX + width / 2, posY - height / 2, posZ + depth / 2,  // bottom-left
+                    posX + width / 2, posY - height / 2, posZ - depth / 2,  // bottom-right
+                    posX + width / 2, posY + height / 2, posZ - depth / 2,  // top-right
+                    posX + width / 2, posY + height / 2, posZ + depth / 2,  // top-left
+                    1, 0, 0 // Normal (east)
+                );
+                return;
+            default:
+                System.out.println("Unknown face: " + faceEntry.getKey());
+                return;
+        }
     }
 
     private static MeshPartBuilder getMeshPartBuilder(ModelBuilder modelBuilder, Map.Entry<String, String> faceEntry, Map<Material, MeshPartBuilder> faceBatches, Material material, int finalX, int finalY, int finalZ) {
