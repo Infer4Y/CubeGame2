@@ -34,7 +34,7 @@ public class WorldRenderer {
     private ShapeRenderer shapeRenderer = new ShapeRenderer();
     private Vector3 feetPosition = new Vector3(); // Player's feet position
     private final float playerHeight = 1.8f; // Height of the player (camera offset)
-    private final float eyeOffset = 1.6f; // Camera height offset from feet (eye level)
+    private final float eyeOffset = 1.4f; // Camera height offset from feet (eye level)
     private float lastCull = 0; // Last time chunks were culled
 
 
@@ -103,93 +103,35 @@ public class WorldRenderer {
         Vector3 right = new Vector3(camera.direction).crs(Vector3.Y).nor().scl(movementInput.x);
         Vector3 movement = forward.add(right).scl(50f * deltaTime);
 
-        // Compute new feet position
-        Vector3 newPosition = feetPosition.cpy().add(movement);
 
-        feetPosition.set(newPosition);
+        // Compute new feet position
+        feetPosition.add(movement);
 
         // Set the camera position to feetPosition + eyeOffset
-        camera.position.set(feetPosition.x, feetPosition.y + eyeOffset-.2f, feetPosition.z);
+        camera.position.set(feetPosition.x, feetPosition.y + eyeOffset, feetPosition.z);
         camera.update();
-
-        // Jumping logic, ground check, etc.
-
-        handleJumping();
 
         if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
             Gdx.input.setCursorCatched(!Gdx.input.isCursorCatched()); // Unlock and show cursor
         }
     }
 
-    private void applyGravity(float deltaTime) {
-        if (!isGrounded) {
-            velocity.add(gravity.cpy().scl(deltaTime)); // Apply gravity
-        }
-    }
-
-    private void handleJumping() {
-        if (isJumpKeyPressed() && isGrounded) {
-            velocity.y = jumpForce; // Apply jump force
-            isGrounded = false; // Not grounded after jumping
-        }
-    }
-
-    private BoundingBox getPlayerBoundingBox(Vector3 camera) {
-        Vector3 min = camera.cpy().sub(0.5f, 0.0f, 0.5f); // Bottom corner
-        Vector3 max = camera.cpy().add(0.5f, playerHeight, 0.5f); // Top corner
-        return new BoundingBox(min, max);
-    }
-
-    private boolean isJumpKeyPressed() {
-        return Gdx.input.isKeyPressed(Input.Keys.SPACE);
-    }
-
     private void renderChunks(Camera camera) {
         Vector3 frustumPosition = feetPosition;
-        int centerChunkSize = Chunk.CHUNK_SIZE / 2;
+
         int x = (int) (frustumPosition.x / Chunk.CHUNK_SIZE);
         int y = (int) (frustumPosition.y / Chunk.CHUNK_SIZE);
         int z = (int) (frustumPosition.z / Chunk.CHUNK_SIZE);
 
-        // List to store chunks and their distances
-        List<Pair<Chunk, Float>> chunkDistances = new ArrayList<>();
-
         // Load nearby chunks
         for (String loadedChunk : world.getChunkKeysToLoad(x, y, z)) {
             int[] coords = world.getChunkCoordinates(loadedChunk);
-            Chunk chunk = world.getChunk(coords[0], coords[1], coords[2]);
+            int chunkX = coords[0];
+            int chunkY = coords[1];
+            int chunkZ = coords[2];
+            Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
             if (chunk == null) continue;
-
-            // Calculate the distance to the chunk
-            float distance = frustumPosition.dst(new Vector3(
-                (coords[0] + centerChunkSize) * Chunk.CHUNK_SIZE,
-                (coords[1] + centerChunkSize) * Chunk.CHUNK_SIZE,
-                (coords[2] + centerChunkSize) * Chunk.CHUNK_SIZE
-            ));
-            chunkDistances.add(new Pair<>(chunk, distance));
-        }
-
-        // Sort chunks by distance
-        chunkDistances.sort(Comparator.comparing(Pair::getValue));
-
-        // Define a box size for visibility check
-        float boxSize = 12 * Chunk.CHUNK_SIZE; // Adjust this value as needed
-
-        // Render chunks in order of distance
-        for (Pair<Chunk, Float> pair : chunkDistances) {
-            Chunk chunk = pair.getKey();
-            Vector3 chunkPosition = new Vector3(
-                chunk.getChunkX() * Chunk.CHUNK_SIZE,
-                chunk.getChunkY() * Chunk.CHUNK_SIZE,
-                chunk.getChunkZ() * Chunk.CHUNK_SIZE
-            );
-
-            // Check if the chunk is within the visibility box
-            if (Math.abs(chunkPosition.x - frustumPosition.x) <= boxSize &&
-                Math.abs(chunkPosition.y - frustumPosition.y) <= boxSize &&
-                Math.abs(chunkPosition.z - frustumPosition.z) <= boxSize) {
-                chunkRenderer.render(batch, camera, chunk);
-            }
+            chunkRenderer.render(batch, camera, chunk);
         }
     }
 

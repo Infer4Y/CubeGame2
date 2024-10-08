@@ -2,21 +2,21 @@ package inferno.cube_game.common.levels;
 
 import com.badlogic.gdx.math.Vector3;
 import inferno.cube_game.common.levels.chunks.Chunk;
+import inferno.cube_game.common.levels.chunks.ChunkGenerator;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.HashSet;
+import java.util.Map;
 
 public class World {
-    private ConcurrentHashMap<String, Chunk> loadedChunks;
+    private ConcurrentHashMap<String, Future<Chunk>> loadingChunks; // Track chunks being generated
     private final ExecutorService chunkGeneratorExecutor;
-    private int chunkLoadRadius = 6; // Number of chunks to load around the player (in all directions)
-    private long seed = System.currentTimeMillis(); // Seed for the world generation
+    private int chunkLoadRadius = 8; // Number of chunks to load around the player
+    private long seed = System.currentTimeMillis(); // World generation seed
+    private ChunkGenerator chunkGenerator = new ChunkGenerator(seed);
 
     public World() {
-        loadedChunks = new ConcurrentHashMap<>();
+        loadingChunks = new ConcurrentHashMap<>();
         chunkGeneratorExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     }
 
@@ -26,7 +26,15 @@ public class World {
 
     public Chunk getChunk(int chunkX, int chunkY, int chunkZ) {
         String key = getChunkKey(chunkX, chunkY, chunkZ);
-        return loadedChunks.get(key);
+        Future<Chunk> future = loadingChunks.get(key);
+        if (future != null) {
+            try {
+                return future.get(); // Wait for the chunk if it's still being generated
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return null; // Return null if chunk hasn't been generated yet
     }
 
     public void updateChunks(Vector3 playerPosition) {
@@ -42,19 +50,20 @@ public class World {
             int chunkY = chunkYFromKey(key);
             int chunkZ = chunkZFromKey(key);
 
-            // Submit chunk generation task to executor
-            chunkGeneratorExecutor.submit(() -> {
-                loadedChunks.computeIfAbsent(key, k -> new Chunk(seed, chunkX, chunkY, chunkZ));
-            });
+            // Submit chunk generation as Future tasks
+            loadingChunks.computeIfAbsent(key, k -> chunkGeneratorExecutor.submit(() -> chunkGenerator.generateChunk(chunkX, chunkY, chunkZ)));
         }
 
         // Unload chunks that are too far from the player
-        loadedChunks.keySet().removeIf(key -> {
+        for (Map.Entry<String, Future<Chunk>> entry : loadingChunks.entrySet()) {
+            String key = entry.getKey();
             int[] coords = getChunkCoordinates(key);
-            return Math.abs(coords[0] - playerChunkX) > chunkLoadRadius ||
+            if (Math.abs(coords[0] - playerChunkX) > chunkLoadRadius ||
                 Math.abs(coords[1] - playerChunkY) > chunkLoadRadius ||
-                Math.abs(coords[2] - playerChunkZ) > chunkLoadRadius;
-        });
+                Math.abs(coords[2] - playerChunkZ) > chunkLoadRadius) {
+                loadingChunks.remove(key); // Remove chunks that are far away
+            }
+        }
     }
 
     public HashSet<String> getChunkKeysToLoad(int playerChunkX, int playerChunkY, int playerChunkZ) {

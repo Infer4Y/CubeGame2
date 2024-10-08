@@ -62,36 +62,32 @@ public class GreedyMesher {
                         if (blockModel != null && !blockModel.elements.isEmpty()) {
                             for (Element element : blockModel.elements) {
                                 for (Map.Entry<String, String> faceEntry : element.faces.entrySet()) {
-                                    String texturePath = blockModel.textures.get(faceEntry.getValue());
-
-                                    // Material caching
-                                    Material material = materialCache.computeIfAbsent(block.getRegistryName() + texturePath, key ->
-                                        new Pair<>(block,new Material(TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(texturePath))))
-                                    ).getValue();
-
-                                    int finalX = x;
-                                    int finalY = y;
-                                    int finalZ = z;
-                                    MeshPartBuilder meshBuilder = faceBatches.computeIfAbsent(material, mat ->
-                                        modelBuilder.part("batch-" + "x"+ finalX + "y" + finalY + "z" + finalZ + "face" + faceEntry.getKey() + mat.hashCode(), GL20.GL_TRIANGLES,
-                                            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
-                                            mat));
-
-                                    // Get the position based on the element's dimensions
-                                    float width = element.to.x - element.from.x;
-                                    float height = element.to.y - element.from.y;
-                                    float depth = element.to.z - element.from.z;
-
-                                    // Get the position based on the element's dimensions and chunk position
-                                    float posX = chunkPosition.x + element.from.x + x;
-                                    float posY = chunkPosition.y + element.from.y + y;
-                                    float posZ = chunkPosition.z + element.from.z + z;
-
-                                    // Create the face based on its direction and dynamic dimensions
                                     if (isFaceVisible(chunk, x, y, z, faceEntry.getKey())) {
+                                        String texturePath = blockModel.textures.get(faceEntry.getValue());
+
+                                        // Material caching
+                                        Material material = materialCache.computeIfAbsent(block.getRegistryName() + faceEntry.getKey() + texturePath, key ->
+                                            new Pair<>(block,new Material(TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(texturePath))))
+                                        ).getValue();
+
+                                        int finalX = x;
+                                        int finalY = y;
+                                        int finalZ = z;
+
+                                        // Get the position based on the element's dimensions
+                                        float width = element.to.x - element.from.x;
+                                        float height = element.to.y - element.from.y;
+                                        float depth = element.to.z - element.from.z;
+
+                                        // Get the position based on the element's dimensions and chunk position
+                                        float posX = chunkPosition.x + element.from.x + x;
+                                        float posY = chunkPosition.y + element.from.y + y;
+                                        float posZ = chunkPosition.z + element.from.z + z;
+
+                                        // Create the face based on its direction and dynamic dimensions
                                         switch (faceEntry.getKey()) {
                                             case "up":
-                                                meshBuilder.rect(
+                                                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
                                                     posX - width / 2, posY + height / 2, posZ + depth / 2,  // Top-left
                                                     posX + width / 2, posY + height / 2, posZ + depth / 2,  // Top-right
                                                     posX + width / 2, posY + height / 2, posZ - depth / 2,  // Bottom-right
@@ -100,7 +96,7 @@ public class GreedyMesher {
                                                 );
                                                 break;
                                             case "down":
-                                                meshBuilder.rect(
+                                                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
                                                     posX + width / 2, posY - height / 2, posZ - depth / 2,  // Top-left
                                                     posX + width / 2, posY - height / 2, posZ + depth / 2,  // Top-right
                                                     posX - width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-right
@@ -110,7 +106,7 @@ public class GreedyMesher {
                                                 break;
                                             // North face
                                             case "north":
-                                                meshBuilder.rect(
+                                                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
                                                     posX + width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-right
                                                     posX - width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-left
                                                     posX - width / 2, posY + height / 2, posZ - depth / 2,  // Top-left
@@ -120,7 +116,7 @@ public class GreedyMesher {
                                                 break;
                                             // South face
                                             case "south":
-                                                meshBuilder.rect(
+                                                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
                                                     posX - width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-left
                                                     posX + width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-right
                                                     posX + width / 2, posY + height / 2, posZ + depth / 2,  // Top-right
@@ -129,7 +125,7 @@ public class GreedyMesher {
                                                 );
                                                 break;
                                             case "west":
-                                                meshBuilder.rect(
+                                                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
                                                     posX - width / 2, posY - height / 2, posZ - depth / 2,  // Bottom-right
                                                     posX - width / 2, posY - height / 2, posZ + depth / 2,  // Bottom-left
                                                     posX - width / 2, posY + height / 2, posZ + depth / 2,  // Top-left
@@ -138,7 +134,7 @@ public class GreedyMesher {
                                                 );
                                                 break;
                                             case "east":
-                                                meshBuilder.rect(
+                                                getMeshPartBuilder(modelBuilder, faceEntry, faceBatches, material, finalX, finalY, finalZ).rect(
                                                     posX + width / 2, posY - height / 2, posZ + depth / 2,  // bottom-left
                                                     posX + width / 2, posY - height / 2, posZ - depth / 2,  // bottom-right
                                                     posX + width / 2, posY + height / 2, posZ - depth / 2,  // top-right
@@ -162,6 +158,14 @@ public class GreedyMesher {
         Model model = modelBuilder.end();
         modelCache.put(chunkKey, new Pair<>(chunk, model)); // Cache the generated model
         return model;
+    }
+
+    private static MeshPartBuilder getMeshPartBuilder(ModelBuilder modelBuilder, Map.Entry<String, String> faceEntry, Map<Material, MeshPartBuilder> faceBatches, Material material, int finalX, int finalY, int finalZ) {
+        MeshPartBuilder meshBuilder = faceBatches.computeIfAbsent(material, mat ->
+            modelBuilder.part("batch_" + "x_"+ finalX + "y_" + finalY + "z_" + finalZ + "face_" + faceEntry.getKey().toUpperCase(), GL20.GL_TRIANGLES,
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
+                mat));
+        return meshBuilder;
     }
 
     private boolean canCullBlock(Chunk chunk, int x, int y, int z) {

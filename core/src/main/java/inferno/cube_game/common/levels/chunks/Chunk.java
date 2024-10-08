@@ -7,23 +7,23 @@ import inferno.cube_game.common.blocks.Block;
 import inferno.cube_game.common.registries.BlockRegistry;
 
 import java.io.Serializable;
-import java.util.Random;
 
 public class Chunk implements Serializable {
-    public static final int CHUNK_SIZE = 16; // This can be modified for larger vertical chunks
+    public static final int CHUNK_SIZE = 16;
     private Block[] blocks;
     private int chunkX, chunkY, chunkZ;
     private BoundingBox boundingBox;
-    private long seed; // Seed for the world generation
+    private long seed;
+    private int[][] heightMap; // Precomputed height map for faster generation
 
-    public Chunk(long seed, int chunkX, int chunkY, int chunkZ) {
+    public Chunk(long seed, int chunkX, int chunkY, int chunkZ, int[][] heightMap) {
         this.seed = seed;
         this.chunkX = chunkX;
         this.chunkY = chunkY;
         this.chunkZ = chunkZ;
-        blocks = new Block[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE];
+        this.blocks = new Block[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
+        this.heightMap = heightMap;
 
-        // Generate terrain
         generateTerrain();
         setBoundingBox();
     }
@@ -37,33 +37,20 @@ public class Chunk implements Serializable {
     private void generateTerrain() {
         for (int x = 0; x < CHUNK_SIZE; x++) {
             for (int z = 0; z < CHUNK_SIZE; z++) {
+                int height = heightMap[x][z]; // Get the height from the precomputed map
+
                 for (int y = 0; y < CHUNK_SIZE; y++) {
-                // Calculate the world coordinates
-                    double worldX = (chunkX * CHUNK_SIZE + x) / 256.0;
-                    double worldY = (chunkY * CHUNK_SIZE + y) / 256.0;
-                    double worldZ = (chunkZ * CHUNK_SIZE + z) / 256.0;
-
-                    // Calculate the height of the terrain
-                    float height = getHeight(worldX, worldY, worldZ);
-
-                    if (worldY < height-.5) {
-                        setBlock(x, y, z, BlockRegistry.STONE_BLOCK);
-                    } else if (worldY < height) {
-                        setBlock(x, y, z, BlockRegistry.DIRT_BLOCK);
+                    if (chunkY * CHUNK_SIZE + y < height - 1) {
+                        if ((y % 2) == 0) setBlock(x, y, z, BlockRegistry.BRICK_BLOCK);
+                        else setBlock(x, y, z, BlockRegistry.STONE_BLOCK);
+                    } else if (chunkY * CHUNK_SIZE + y < height) {
+                        setBlock(x, y, z, BlockRegistry.GRASS_BLOCK);
                     } else {
                         setBlock(x, y, z, BlockRegistry.AIR_BLOCK);
                     }
                 }
             }
         }
-    }
-
-    private float getHeight(double worldX, double worldY, double worldZ) {
-        float x = OpenSimplex2S.noise2(seed,worldX, worldY);
-        float y = OpenSimplex2S.noise2(seed,worldX, worldZ);
-        float z = OpenSimplex2S.noise2(seed,worldY, worldZ);
-
-        return Math.abs(OpenSimplex2S.noise4_ImproveXYZ_ImproveXZ(seed, worldX,worldY, worldZ, x+y+z));
     }
 
     public Block getBlock(int x, int y, int z) {
@@ -80,8 +67,19 @@ public class Chunk implements Serializable {
         blocks[x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z] = block;
     }
 
-    public int getChunkX() { return chunkX; }
-    public int getChunkY() { return chunkY; }
-    public int getChunkZ() { return chunkZ; }
-    public BoundingBox getBounds() { return boundingBox; }
+    public int getChunkX() {
+        return chunkX;
+    }
+
+    public int getChunkY() {
+        return chunkY;
+    }
+
+    public int getChunkZ() {
+        return chunkZ;
+    }
+
+    public BoundingBox getBounds() {
+        return boundingBox;
+    }
 }
