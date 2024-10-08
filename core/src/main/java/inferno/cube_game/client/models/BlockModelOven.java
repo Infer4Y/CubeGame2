@@ -18,6 +18,8 @@ import java.util.Map;
 
 // BlockModelOven.java
 public class BlockModelOven {
+    private static final float SCALE_FACTOR = 1f / 16f; // Define the scaling factor
+
     private HashMap<String, BlockModel> modelCache; // Cache for models
     private Json json;
 
@@ -33,7 +35,7 @@ public class BlockModelOven {
         });
     }
 
-    public BlockModel getBlockModel(Block block) {
+    public BlockModel createOrGetBlockModel(Block block) {
         String blockType = block.getRegistryName();
         if (modelCache.containsKey(blockType)) {
             return modelCache.get(blockType);
@@ -42,29 +44,17 @@ public class BlockModelOven {
         // Load the model config (e.g., .json, .obj, etc.)
         try {
             FileHandle configFile = Gdx.files.internal("assets/" + block.getDomain() + "/models/blocks/" + blockType + ".json");
-            BlockModel config = json.fromJson(BlockModel.class, configFile);
 
             // Choose the loader based on the model type
-            IModelLoader loader;
-            if ("json".equalsIgnoreCase(config.modelType)) {
-                loader = new JsonModelLoader();
-            } else {
-                throw new SerializationException("Unsupported model type: " + config.modelType);
-            }
-
+            IModelLoader loader = new JsonModelLoader();
             BlockModel blockModel = loader.loadBlockModel(configFile);
 
+            // Load the textures
             if (blockModel.textures != null) {
-                for (String textureKey : blockModel.textures.values()) {
-                    String[] arrayS = textureKey.split(":");
-                    String texturePath = block.getDomain() + ":" + arrayS[1];
-                    loadTexture(texturePath);
-                    // You can store the texture in the BlockModel or a Material if needed
-                    // For example: blockModel.textureMap.put(textureKey, texture); (If you need the texture later)
-                }
+                blockModel.textures.values().forEach(Main.textureLoader::loadTexture);
             }
-            modelCache.put(blockType, blockModel);
 
+            modelCache.put(blockType, blockModel);
             return blockModel;
         } catch (SerializationException exception) {
             exception.printStackTrace();
@@ -72,14 +62,6 @@ public class BlockModelOven {
         return null;
     }
 
-    private void loadTexture(String texturePath) {
-        Main.textureLoader.loadTexture(texturePath);
-    }
-
     public void dispose() {
-    }
-
-    public HashMap<String, BlockModel> getBlockModels() {
-        return modelCache;
     }
 }
