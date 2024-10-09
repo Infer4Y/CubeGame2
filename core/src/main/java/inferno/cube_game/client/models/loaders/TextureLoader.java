@@ -9,14 +9,18 @@ import java.util.HashMap;
 
 public class TextureLoader {
     private HashMap<String, Texture> textureCache = new HashMap<>();
-    private Json json = new Json();
 
     public Texture loadTexture(String texturePath) {
-        String[] arrayS = texturePath.split(":");
+        final String[] splitTexturePath = texturePath.split(":");
+        String domain = splitTexturePath[0];
+        String textureName = splitTexturePath[1];
+
         if (!textureCache.containsKey(texturePath)) {
-            Texture texture = new Texture(Gdx.files.internal("assets/" + arrayS[0] + "/textures/" + arrayS[1]));
+            String path = "assets/" + domain + "/textures/" + textureName;
+            Texture texture = new Texture(Gdx.files.internal(path));
             textureCache.put(texturePath, texture);
         }
+
         return textureCache.get(texturePath);
     }
 

@@ -133,7 +133,7 @@ public class LoadingState extends GameState {
         String currentItemText;
         if (currentStep == LoadStep.REGISTER_BLOCKS && currentBlockIndex > 0) {
             currentItemText = "Currently Registering block : " + blockNames.get(currentBlockIndex - 1);
-            Main.blockModelOven.getBlockModel(BlockRegistry.getBlock(blockNames.get(currentBlockIndex - 1)));
+            Main.blockModelOven.createOrGetBlockModel(BlockRegistry.getBlock(blockNames.get(currentBlockIndex - 1)));
         } else if (currentStep == LoadStep.REGISTER_ITEMS && currentItemIndex > 0) {
             currentItemText = "Currently Registering item : " + itemNames.get(currentItemIndex - 1);
         } else {
