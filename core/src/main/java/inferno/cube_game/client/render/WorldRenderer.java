@@ -48,6 +48,7 @@ public class WorldRenderer {
 
         if (System.currentTimeMillis() - lastCull >= 60 * 1000) {
             chunkRenderer.cullChunks(camera.position);
+            chunkRenderer.clearMaterialCache();
             lastCull = System.currentTimeMillis();
         }
     }

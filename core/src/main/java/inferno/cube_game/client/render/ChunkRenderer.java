@@ -53,4 +53,8 @@ public class ChunkRenderer {
     public void cullChunks(Vector3 position) {
         greedyMesher.cullChunks(position);
     }
+
+    public void clearMaterialCache() {
+        greedyMesher.clearMaterialCache();
+    }
 }

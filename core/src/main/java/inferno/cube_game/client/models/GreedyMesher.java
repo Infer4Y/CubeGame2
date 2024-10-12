@@ -1,12 +1,10 @@
 package inferno.cube_game.client.models;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
-import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
@@ -20,6 +18,7 @@ import inferno.cube_game.common.levels.chunks.Chunk;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class GreedyMesher {
     private final Map<String, Material> materialCache = new HashMap<>();
@@ -120,6 +119,8 @@ public class GreedyMesher {
 
         // Get the material from the face texture
         Material material = getMaterialFromFaceOfBlockModel(faceDirectionAndTexture.getValue());
+
+        if (!Objects.equals(material.id, faceDirectionAndTexture.getValue())) return;
 
         switch (faceDirectionAndTexture.getKey()) {
             case "up" -> {
@@ -229,16 +230,16 @@ public class GreedyMesher {
     }
 
     public void dispose() {
-        for (Model model : modelCache.values()) {
-            model.dispose();
-        }
+        modelCache.values().forEach(Model::dispose);
         modelCache.clear();
     }
 
     public void cullChunks(Vector3 position) {
-        modelCache.forEach((key, value) -> {
-            value.dispose();
-        });
+        modelCache.values().forEach(Model::dispose);
         modelCache.keySet().clear();
+    }
+
+    public void clearMaterialCache() {
+        materialCache.clear();
     }
 }

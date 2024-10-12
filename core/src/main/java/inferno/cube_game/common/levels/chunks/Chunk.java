@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 
 public class Chunk implements Serializable {
-    public static final int CHUNK_SIZE = 16;
+    public static final int CHUNK_SIZE = 24;
     private Block[] blocks;
     private int chunkX, chunkY, chunkZ;
     private BoundingBox boundingBox;
@@ -41,11 +41,9 @@ public class Chunk implements Serializable {
                 IntStream.range(0, CHUNK_SIZE).parallel().forEach(y -> {
                     int height = heightMap[x][y][z]; // Get the height from the precomputed map
 
-                    if (chunkY * CHUNK_SIZE + y -1 < height) {
-                        setBlock(x, y, z, BlockRegistry.STONE_BLOCK);
-                    } else if (chunkY * CHUNK_SIZE + y + 1 < height) {
+                    if (chunkY * CHUNK_SIZE + y < height) {
                         setBlock(x, y, z, BlockRegistry.GRASS_BLOCK);
-                    } else {
+                    } else  {
                         setBlock(x, y, z, BlockRegistry.AIR_BLOCK);
                     }
                 });
