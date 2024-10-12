@@ -1,5 +1,4 @@
 {
-  "modelType": "json",
   "elements": [
     {
       "from": [
@@ -17,7 +16,7 @@
         "south":  "sides",
         "east":  "sides",
         "west": "sides",
-        "up":  "sides",
+        "up":  "top",
         "down": "bottom"
       }
     }

@@ -108,7 +108,7 @@ public class LoadingState extends GameState {
                 break;
 
             case DONE:
-                GameStateManager.setState(new MainMenuState(batch));
+                GameStateManager.setState(new GameplayState(batch));
                 break;
         }
     }

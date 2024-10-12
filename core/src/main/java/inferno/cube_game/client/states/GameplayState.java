@@ -19,9 +19,9 @@ public class GameplayState extends GameState {
     public static final DirectionalLight DIRECTIONAL_LIGHT = new DirectionalLight().set(1f, 1f, 1f, -1f, -1f, -1f);
     private WorldRenderer worldRenderer;
     private Environment environment;
-    private ShapeRenderer shapeRenderer;
-    private float distanceFromCamera = 50f; // Distance in front of the camera
-    private DynamicSky dynamicSky;
+    private final ShapeRenderer shapeRenderer;
+    private final float distanceFromCamera = 50f; // Distance in front of the camera
+    private final DynamicSky dynamicSky;
 
     public GameplayState(SpriteBatch batch) {
         super(batch);

@@ -3,21 +3,15 @@ package inferno.cube_game.client.render;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Camera;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Frustum;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.math.collision.BoundingBox;
-import inferno.cube_game.Pair;
-import inferno.cube_game.common.blocks.Block;
 import inferno.cube_game.common.levels.World;
 import inferno.cube_game.common.levels.chunks.Chunk;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.IntStream;
 
 public class WorldRenderer {
     private World world;
@@ -52,7 +46,7 @@ public class WorldRenderer {
         world.updateChunks(camera.position);
         renderChunks(camera);
 
-        if (System.currentTimeMillis() - lastCull >= 10000) {
+        if (System.currentTimeMillis() - lastCull >= 60 * 1000) {
             chunkRenderer.cullChunks(camera.position);
             lastCull = System.currentTimeMillis();
         }
@@ -131,8 +125,18 @@ public class WorldRenderer {
             int chunkZ = coords[2];
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
             if (chunk == null) continue;
+            if (chunk.onlyAir()) continue;
+            if (!isChunkBelowAir(chunkX, chunkY, chunkZ)) continue;
+
             chunkRenderer.render(batch, camera, chunk);
         }
+    }
+
+    private boolean isChunkBelowAir(int chunkX, int chunkY, int chunkZ) {
+        Chunk chunk = world.getChunk(chunkX, chunkY + 1, chunkZ);
+        if (chunk == null) return true;
+
+        return chunk.hasAirInFirstLayer();
     }
 
     public void dispose() {

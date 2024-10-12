@@ -1,4 +1,4 @@
-package inferno.cube_game;
+package inferno.cube_game.extras.utils;
 
 public class Pair<K, V> {
     private K key;

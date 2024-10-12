@@ -2,11 +2,11 @@ package inferno.cube_game.common.levels.chunks;
 
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
-import inferno.cube_game.OpenSimplex2S;
 import inferno.cube_game.common.blocks.Block;
 import inferno.cube_game.common.registries.BlockRegistry;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 public class Chunk implements Serializable {
@@ -15,9 +15,9 @@ public class Chunk implements Serializable {
     private int chunkX, chunkY, chunkZ;
     private BoundingBox boundingBox;
     private long seed;
-    private int[][] heightMap; // Precomputed height map for faster generation
+    private int[][][] heightMap; // Precomputed height map for faster generation
 
-    public Chunk(long seed, int chunkX, int chunkY, int chunkZ, int[][] heightMap) {
+    public Chunk(long seed, int chunkX, int chunkY, int chunkZ, int[][][] heightMap) {
         this.seed = seed;
         this.chunkX = chunkX;
         this.chunkY = chunkY;
@@ -38,13 +38,12 @@ public class Chunk implements Serializable {
     private void generateTerrain() {
         IntStream.range(0, CHUNK_SIZE).parallel().forEach(x -> {
             IntStream.range(0, CHUNK_SIZE).parallel().forEach(z -> {
-                int height = heightMap[x][z]; // Get the height from the precomputed map
-
                 IntStream.range(0, CHUNK_SIZE).parallel().forEach(y -> {
-                    if (chunkY * CHUNK_SIZE + y < height - 1) {
-                        if ((y % 2) == 0) setBlock(x, y, z, BlockRegistry.BRICK_BLOCK);
-                        else setBlock(x, y, z, BlockRegistry.STONE_BLOCK);
-                    } else if (chunkY * CHUNK_SIZE + y < height) {
+                    int height = heightMap[x][y][z]; // Get the height from the precomputed map
+
+                    if (chunkY * CHUNK_SIZE + y -1 < height) {
+                        setBlock(x, y, z, BlockRegistry.STONE_BLOCK);
+                    } else if (chunkY * CHUNK_SIZE + y + 1 < height) {
                         setBlock(x, y, z, BlockRegistry.GRASS_BLOCK);
                     } else {
                         setBlock(x, y, z, BlockRegistry.AIR_BLOCK);
@@ -83,4 +82,13 @@ public class Chunk implements Serializable {
     public BoundingBox getBounds() {
         return boundingBox;
     }
+
+    public boolean onlyAir() {
+        return Arrays.stream(blocks).allMatch(Block::isAir);
+    }
+
+    public boolean hasAirInFirstLayer() {
+        return IntStream.range(0, CHUNK_SIZE).anyMatch(x -> IntStream.range(0, CHUNK_SIZE).anyMatch(z -> getBlock(x, 0, z).isAir()));
+    }
+
 }

@@ -1,5 +1,6 @@
 package inferno.cube_game.common.levels;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector3;
 import inferno.cube_game.common.levels.chunks.Chunk;
 import inferno.cube_game.common.levels.chunks.ChunkGenerator;
@@ -11,7 +12,7 @@ import java.util.Map;
 public class World {
     private ConcurrentHashMap<String, Future<Chunk>> loadingChunks; // Track chunks being generated
     private final ExecutorService chunkGeneratorExecutor;
-    private int chunkLoadRadius = 8; // Number of chunks to load around the player
+    private int chunkLoadRadius = 10; // Number of chunks to load around the player
     private long seed = System.currentTimeMillis(); // World generation seed
     private ChunkGenerator chunkGenerator = new ChunkGenerator(seed);
 
@@ -31,7 +32,7 @@ public class World {
             try {
                 return future.get(); // Wait for the chunk if it's still being generated
             } catch (Exception e) {
-                e.printStackTrace();
+                Gdx.app.error("World", "Failed to get chunk: " + key + "\n " + e.getMessage());
             }
         }
         return null; // Return null if chunk hasn't been generated yet
@@ -54,6 +55,10 @@ public class World {
             loadingChunks.computeIfAbsent(key, k -> chunkGeneratorExecutor.submit(() -> chunkGenerator.generateChunk(chunkX, chunkY, chunkZ)));
         }
 
+        //cullTooFarChunks(playerChunkX, playerChunkY, playerChunkZ);
+    }
+
+    private void cullTooFarChunks(int playerChunkX, int playerChunkY, int playerChunkZ) {
         // Unload chunks that are too far from the player
         for (Map.Entry<String, Future<Chunk>> entry : loadingChunks.entrySet()) {
             String key = entry.getKey();

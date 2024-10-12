@@ -8,7 +8,7 @@ import com.badlogic.gdx.files.FileHandle;
 import java.util.HashMap;
 
 public class TextureLoader {
-    private HashMap<String, Texture> textureCache = new HashMap<>();
+    private final HashMap<String, Texture> textureCache = new HashMap<>();
 
     public Texture loadTexture(String texturePath) {
         final String[] splitTexturePath = texturePath.split(":");

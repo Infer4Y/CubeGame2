@@ -5,7 +5,7 @@ import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import inferno.cube_game.client.models.BlockModelOven;
+import inferno.cube_game.client.models.loaders.BlockModelOven;
 import inferno.cube_game.client.models.loaders.TextureLoader;
 import inferno.cube_game.client.states.GameStateManager;
 import inferno.cube_game.client.states.LoadingState;
@@ -18,6 +18,9 @@ public class Main extends ApplicationAdapter {
 
     public static BitmapFont font;
     public static GlyphLayout fpsCounter = new GlyphLayout();
+
+    FPSLogger logger = new FPSLogger();
+
 
     @Override
     public void create() {
@@ -33,11 +36,11 @@ public class Main extends ApplicationAdapter {
     public void render() {
         Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-
         //System.out.println(Gdx.graphics.getFramesPerSecond());
         GameStateManager.update(Gdx.graphics.getDeltaTime());
         GameStateManager.render();
 
+        logger.log();
     }
 
 

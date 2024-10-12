@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.math.Vector3;
 
 public class DynamicSky {
-    private Color skyColor;
+    private final Color skyColor;
     private float timeOfDay; // 0 to 1, where 0 is midnight and 1 is the next midnight
 
     public DynamicSky() {

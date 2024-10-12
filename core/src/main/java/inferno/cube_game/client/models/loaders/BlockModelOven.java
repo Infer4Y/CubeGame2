@@ -1,4 +1,4 @@
-package inferno.cube_game.client.models;
+package inferno.cube_game.client.models.loaders;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
@@ -8,8 +8,6 @@ import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.SerializationException;
 import inferno.cube_game.Main;
 import inferno.cube_game.client.models.blocks.BlockModel;
-import inferno.cube_game.client.models.loaders.IModelLoader;
-import inferno.cube_game.client.models.loaders.JsonModelLoader;
 import inferno.cube_game.common.blocks.Block;
 import inferno.cube_game.common.serialization.Vector3Serializer;
 
@@ -20,8 +18,8 @@ import java.util.Map;
 public class BlockModelOven {
     private static final float SCALE_FACTOR = 1f / 16f; // Define the scaling factor
 
-    private HashMap<String, BlockModel> modelCache; // Cache for models
-    private Json json;
+    private final HashMap<String, BlockModel> modelCache; // Cache for models
+    private final Json json;
 
     public BlockModelOven() {
         this.modelCache = new HashMap<>();
@@ -43,11 +41,15 @@ public class BlockModelOven {
 
         // Load the model config (e.g., .json, .obj, etc.)
         try {
-            FileHandle configFile = Gdx.files.internal("assets/" + block.getDomain() + "/models/blocks/" + blockType + ".json");
+            FileHandle blockModelToReadFromJSON = Gdx.files.internal("assets/" + block.getDomain() + "/models/blocks/" + blockType + ".json");
 
             // Choose the loader based on the model type
-            IModelLoader loader = new JsonModelLoader();
-            BlockModel blockModel = loader.loadBlockModel(configFile);
+            BlockModel blockModel = json.fromJson(BlockModel.class, blockModelToReadFromJSON);
+            // Apply scaling factor if needed
+            for (BlockModel.Element element : blockModel.elements) {
+                element.from.scl(SCALE_FACTOR);
+                element.to.scl(SCALE_FACTOR);
+            }
 
             // Load the textures
             if (blockModel.textures != null) {
@@ -57,7 +59,7 @@ public class BlockModelOven {
             modelCache.put(blockType, blockModel);
             return blockModel;
         } catch (SerializationException exception) {
-            exception.printStackTrace();
+            Gdx.app.error("BlockModelOven", "Failed to load block model for " + blockType);
         }
         return null;
     }
