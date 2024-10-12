@@ -12,7 +12,8 @@ import java.util.Map;
 public class World {
     private ConcurrentHashMap<String, Future<Chunk>> loadingChunks; // Track chunks being generated
     private final ExecutorService chunkGeneratorExecutor;
-    private int chunkLoadRadius = 10; // Number of chunks to load around the player
+    private int chunkLoadRadius = 16; // Number of chunks to load around the player
+    private int chunkLoadVisableRadius = 8; // Number of chunks to load around the player
     private long seed = System.currentTimeMillis(); // World generation seed
     private ChunkGenerator chunkGenerator = new ChunkGenerator(seed);
 
@@ -43,7 +44,7 @@ public class World {
         int playerChunkY = (int) (playerPosition.y / Chunk.CHUNK_SIZE);
         int playerChunkZ = (int) (playerPosition.z / Chunk.CHUNK_SIZE);
 
-        HashSet<String> chunkKeysToLoad = getChunkKeysToLoad(playerChunkX, playerChunkY, playerChunkZ);
+        HashSet<String> chunkKeysToLoad = getChunksKeysLoadedByWorld(playerChunkX, playerChunkY, playerChunkZ, chunkLoadRadius);
 
         // Load new chunks asynchronously
         for (String key : chunkKeysToLoad) {
@@ -55,7 +56,7 @@ public class World {
             loadingChunks.computeIfAbsent(key, k -> chunkGeneratorExecutor.submit(() -> chunkGenerator.generateChunk(chunkX, chunkY, chunkZ)));
         }
 
-        //cullTooFarChunks(playerChunkX, playerChunkY, playerChunkZ);
+        cullTooFarChunks(playerChunkX, playerChunkY, playerChunkZ);
     }
 
     private void cullTooFarChunks(int playerChunkX, int playerChunkY, int playerChunkZ) {
@@ -72,6 +73,10 @@ public class World {
     }
 
     public HashSet<String> getChunkKeysToLoad(int playerChunkX, int playerChunkY, int playerChunkZ) {
+        return getChunksKeysLoadedByWorld(playerChunkX, playerChunkY, playerChunkZ, chunkLoadVisableRadius);
+    }
+
+    private HashSet<String> getChunksKeysLoadedByWorld(int playerChunkX, int playerChunkY, int playerChunkZ, int chunkLoadRadius) {
         HashSet<String> chunkKeysToLoad = new HashSet<>();
         for (int x = playerChunkX - chunkLoadRadius; x <= playerChunkX + chunkLoadRadius; x++) {
             for (int y = playerChunkY - chunkLoadRadius; y <= playerChunkY + chunkLoadRadius; y++) {

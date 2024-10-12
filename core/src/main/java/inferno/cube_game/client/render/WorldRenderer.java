@@ -46,7 +46,7 @@ public class WorldRenderer {
         world.updateChunks(camera.position);
         renderChunks(camera);
 
-        if (System.currentTimeMillis() - lastCull >= 60 * 1000) {
+        if (System.currentTimeMillis() - lastCull >= 60 * 10000) {
             chunkRenderer.cullChunks(camera.position);
             chunkRenderer.clearMaterialCache();
             lastCull = System.currentTimeMillis();
@@ -106,8 +106,17 @@ public class WorldRenderer {
         camera.position.set(feetPosition.x, feetPosition.y + eyeOffset, feetPosition.z);
         camera.update();
 
-        if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             Gdx.input.setCursorCatched(!Gdx.input.isCursorCatched()); // Unlock and show cursor
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F11)){
+            if (Gdx.graphics.isFullscreen()){
+                Gdx.graphics.setWindowedMode(1280, 720);
+            } else {
+                Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
+            }
         }
     }
 
@@ -127,7 +136,7 @@ public class WorldRenderer {
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
             if (chunk == null) continue;
             if (chunk.onlyAir()) continue;
-            if (!isChunkBelowAir(chunkX, chunkY, chunkZ)) continue;
+            //if (!isChunkBelowAir(chunkX, chunkY, chunkZ)) continue;
 
             chunkRenderer.render(batch, camera, chunk);
         }

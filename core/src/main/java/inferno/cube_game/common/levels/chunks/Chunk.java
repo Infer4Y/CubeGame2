@@ -15,7 +15,6 @@ public class Chunk implements Serializable {
     private int chunkX, chunkY, chunkZ;
     private BoundingBox boundingBox;
     private long seed;
-    private int[][][] heightMap; // Precomputed height map for faster generation
 
     public Chunk(long seed, int chunkX, int chunkY, int chunkZ, int[][][] heightMap) {
         this.seed = seed;
@@ -23,9 +22,8 @@ public class Chunk implements Serializable {
         this.chunkY = chunkY;
         this.chunkZ = chunkZ;
         this.blocks = new Block[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
-        this.heightMap = heightMap;
 
-        generateTerrain();
+        generateTerrain(heightMap);
         setBoundingBox();
     }
 
@@ -35,7 +33,7 @@ public class Chunk implements Serializable {
         boundingBox = new BoundingBox(min, max);
     }
 
-    private void generateTerrain() {
+    private void generateTerrain(int[][][] heightMap) {
         IntStream.range(0, CHUNK_SIZE).parallel().forEach(x -> {
             IntStream.range(0, CHUNK_SIZE).parallel().forEach(z -> {
                 IntStream.range(0, CHUNK_SIZE).parallel().forEach(y -> {
@@ -82,11 +80,11 @@ public class Chunk implements Serializable {
     }
 
     public boolean onlyAir() {
-        return Arrays.stream(blocks).allMatch(Block::isAir);
+        return Arrays.stream(blocks).parallel().allMatch(Block::isAir);
     }
 
     public boolean hasAirInFirstLayer() {
-        return IntStream.range(0, CHUNK_SIZE).anyMatch(x -> IntStream.range(0, CHUNK_SIZE).anyMatch(z -> getBlock(x, 0, z).isAir()));
+        return IntStream.range(0, CHUNK_SIZE).parallel().anyMatch(x -> IntStream.range(0, CHUNK_SIZE).parallel().anyMatch(z -> getBlock(x, 0, z).isAir()));
     }
 
 }
