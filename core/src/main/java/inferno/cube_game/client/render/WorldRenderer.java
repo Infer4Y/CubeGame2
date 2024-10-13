@@ -43,7 +43,6 @@ public class WorldRenderer {
         handleMouseMovement(camera);
         Vector3 movementInput = getPlayerInput();
         updatePlayer(camera, deltaTime, movementInput);
-        world.updateChunks(camera.position);
         renderChunks(camera);
 
         if (System.currentTimeMillis() - lastCull >= 60 * 10000) {
@@ -51,6 +50,10 @@ public class WorldRenderer {
             chunkRenderer.clearMaterialCache();
             lastCull = System.currentTimeMillis();
         }
+    }
+
+    public void update(float deltaTime) {
+        world.updateChunks(feetPosition);
     }
 
     private void handleMouseMovement(Camera camera) {

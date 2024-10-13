@@ -17,7 +17,8 @@ import inferno.cube_game.client.render.DynamicSky;
 import inferno.cube_game.client.render.WorldRenderer;
 
 public class GameplayState extends GameState {
-    public static final DirectionalLight DIRECTIONAL_LIGHT = new DirectionalLight().set(1f, 1f, 1f, 0f, 0f, 0f);
+    public static final DirectionalLight DIRECTIONAL_LIGHT = new DirectionalLight().set(1f, 1f, 1f,
+        0f, -1f, 0f);
     private WorldRenderer worldRenderer;
     private Environment environment;
     private final DynamicSky dynamicSky;
@@ -41,7 +42,7 @@ public class GameplayState extends GameState {
 
         camera = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-        camera.position.set(0, 100f, 0); // Position the camera above the blocks
+        camera.position.set(0, 256f, 0); // Position the camera above the blocks
         //camera.lookAt(0f, 0f, 0f); // Look towards the blocks
         camera.near = 0.1f;
         camera.far = 1000f;
@@ -72,6 +73,9 @@ public class GameplayState extends GameState {
     public void update(float deltaTime) {
         // Update game logic if needed (e.g., camera movement, block updates)
         dynamicSky.update(deltaTime);
+        if (worldRenderer == null) return;
+
+        worldRenderer.update(deltaTime);
     }
 
     @Override

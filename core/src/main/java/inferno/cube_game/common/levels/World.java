@@ -5,9 +5,14 @@ import com.badlogic.gdx.math.Vector3;
 import inferno.cube_game.common.levels.chunks.Chunk;
 import inferno.cube_game.common.levels.chunks.ChunkGenerator;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.concurrent.*;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * World class that manages chunks and chunk generation
@@ -18,9 +23,9 @@ import java.util.Map;
 public class World {
     private ConcurrentHashMap<String, Future<Chunk>> loadingChunks; // Track chunks being generated
     private final ExecutorService chunkGeneratorExecutor;
-    private int chunkLoadRadius = 16; // Number of chunks to load around the player
+    private int chunkLoadRadius = 12; // Number of chunks to load around the player
     private int chunkLoadVisableRadius = 8; // Number of chunks to load around the player
-    private long seed = System.currentTimeMillis(); // World generation seed
+    private long seed = (System.currentTimeMillis() + System.nanoTime()) / 2; // World generation seed
     private ChunkGenerator chunkGenerator = new ChunkGenerator(seed);
 
     /**
@@ -52,13 +57,16 @@ public class World {
     public Chunk getChunk(int chunkX, int chunkY, int chunkZ) {
         String key = getChunkKey(chunkX, chunkY, chunkZ); // Generate key from coordinates
         Future<Chunk> future = loadingChunks.get(key); // Get the chunk by key
-        if (future != null) {
-            try {
-                return future.get(); // Wait for the chunk if it's still being generated
-            } catch (Exception e) {
-                Gdx.app.error("World", "Failed to get chunk: " + key + "\n " + e.getMessage()); // Log error if chunk generation failed
-            }
+        if (future == null) return null; // Return null if chunk doesn't exist
+
+        if (!future.isDone()) return null; // Return null if chunk hasn't been generated yet
+
+        try {
+            return future.get(); // Return the chunk if it's done being generated
+        } catch (InterruptedException | ExecutionException e) {
+            Gdx.app.error("World", "Error getting chunk", e);
         }
+
         return null; // Return null if chunk hasn't been generated yet
     }
 
@@ -125,15 +133,13 @@ public class World {
      * @return Set of chunk keys to load
      */
     private HashSet<String> getChunksKeysLoadedByWorld(int playerChunkX, int playerChunkY, int playerChunkZ, int chunkLoadRadius) {
-        HashSet<String> chunkKeysToLoad = new HashSet<>();
-        for (int chunkCoordinatesX = playerChunkX - chunkLoadRadius; chunkCoordinatesX <= playerChunkX + chunkLoadRadius; chunkCoordinatesX++) {
-            for (int chunkCoordinatesY = playerChunkY - chunkLoadRadius; chunkCoordinatesY <= playerChunkY + chunkLoadRadius; chunkCoordinatesY++) {
-                for (int chunkCoordinatesZ = playerChunkZ - chunkLoadRadius; chunkCoordinatesZ <= playerChunkZ + chunkLoadRadius; chunkCoordinatesZ++) {
-                    chunkKeysToLoad.add(getChunkKey(chunkCoordinatesX, chunkCoordinatesY, chunkCoordinatesZ)); // Add the key of the chunk to the set
-                }
-            }
-        }
-        return chunkKeysToLoad; // Return the set of chunk keys
+        // Iterate over the range of chunks to load around the player
+        return IntStream.range(playerChunkX - chunkLoadRadius, playerChunkX + chunkLoadRadius)
+            .boxed().parallel()
+            .flatMap(x -> IntStream.range(playerChunkY - chunkLoadRadius, playerChunkY + chunkLoadRadius)
+                .boxed().parallel()
+                .flatMap(y -> IntStream.range(playerChunkZ - chunkLoadRadius, playerChunkZ + chunkLoadRadius).parallel()
+                    .mapToObj(z -> getChunkKey(x, y, z)))).collect(Collectors.toCollection(HashSet::new)); // Return the set of chunk keys
     }
 
     /**

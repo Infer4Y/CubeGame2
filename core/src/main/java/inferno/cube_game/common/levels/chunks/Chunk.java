@@ -10,13 +10,13 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 
 public class Chunk implements Serializable {
-    public static final int CHUNK_SIZE = 24;
+    public static final int CHUNK_SIZE = 16;
     private Block[] blocks;
     private int chunkX, chunkY, chunkZ;
     private BoundingBox boundingBox;
     private long seed;
 
-    public Chunk(long seed, int chunkX, int chunkY, int chunkZ, int[][][] heightMap) {
+    public Chunk(long seed, int chunkX, int chunkY, int chunkZ, int[] heightMap) {
         this.seed = seed;
         this.chunkX = chunkX;
         this.chunkY = chunkY;
@@ -33,20 +33,27 @@ public class Chunk implements Serializable {
         boundingBox = new BoundingBox(min, max);
     }
 
-    private void generateTerrain(int[][][] heightMap) {
-        IntStream.range(0, CHUNK_SIZE).parallel().forEach(x -> {
-            IntStream.range(0, CHUNK_SIZE).parallel().forEach(z -> {
-                IntStream.range(0, CHUNK_SIZE).parallel().forEach(y -> {
-                    int height = heightMap[x][y][z]; // Get the height from the precomputed map
+    private void generateTerrain(int[] heightMap) {
+        IntStream.rangeClosed(0, heightMap.length).forEach(index -> {
+            int z = index % Chunk.CHUNK_SIZE;
+            int y = (index / Chunk.CHUNK_SIZE) % Chunk.CHUNK_SIZE;
+            int x = index / (Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE);
 
-                    if (chunkY * CHUNK_SIZE + y < height) {
-                        setBlock(x, y, z, BlockRegistry.GRASS_BLOCK);
-                    } else  {
-                        setBlock(x, y, z, BlockRegistry.AIR_BLOCK);
-                    }
-                });
-            });
+            int height = getHeightAtBlockPosition(x, y, z, heightMap); // Get the height from the precomputed map
+
+            if (chunkY * CHUNK_SIZE + y < height) {
+                setBlock(x, y, z, BlockRegistry.GRASS_BLOCK);
+            } else  {
+                setBlock(x, y, z, BlockRegistry.AIR_BLOCK);
+            }
         });
+    }
+
+    private int getHeightAtBlockPosition(int x, int y, int z, int[] oneDimensionalHeightMap) {
+        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
+            return 0;
+        }
+        return oneDimensionalHeightMap[x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z];
     }
 
     public Block getBlock(int x, int y, int z) {

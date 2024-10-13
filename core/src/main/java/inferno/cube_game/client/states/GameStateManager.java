@@ -7,6 +7,7 @@ import inferno.cube_game.Main;
 public class GameStateManager {
     private static GameState currentState;
     public static SpriteBatch batch;
+    public static boolean running = true;
 
     public static void setState(GameState newState) {
         if (currentState != null) {
@@ -26,13 +27,19 @@ public class GameStateManager {
         if (currentState != null)
             currentState.render();
 
+        if (Main.fpsCounter == null) return;
+        if (Main.font == null) return;
+
         Main.fpsCounter.setText(Main.font, "FPS : " + Gdx.graphics.getFramesPerSecond() +
-            " | Delta Time : " + Gdx.graphics.getDeltaTime() +
-            " | Memory Usage : " + Gdx.app.getJavaHeap() / 1024 / 1024 + "MB" +
-            "Position : " + currentState.camera.position.toString());
+            "\nDelta Time : " + Gdx.graphics.getDeltaTime() +
+            "\nMemory Usage : " + String.format("%.3f", Gdx.app.getJavaHeap() / 1024 / 1024 / 1024f) + "GB" +
+            "\nPosition : " + currentState.camera.position.toString());
+
+        if (currentState == null) return;
+        if (currentState.camera == null) return;
 
         batch.begin();
-        Main.font.draw(batch, Main.fpsCounter, 20f , 20f);
+        Main.font.draw(batch, Main.fpsCounter, 20f , Main.fpsCounter.height + 20f);
         batch.end();
     }
 
@@ -45,5 +52,6 @@ public class GameStateManager {
         if (!(currentState == null)) {
             currentState.dispose();
         }
+        running = false;
     }
 }

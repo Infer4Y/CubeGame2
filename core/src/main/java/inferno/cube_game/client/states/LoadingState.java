@@ -108,16 +108,17 @@ public class LoadingState extends GameState {
                 break;
 
             case DONE:
-                GameStateManager.setState(new GameplayState(batch));
                 break;
         }
     }
 
     @Override
     public void render() {
-        camera.viewportWidth = Gdx.graphics.getWidth();
-        camera.viewportHeight = Gdx.graphics.getHeight();
-        camera.update();
+        if (font == null
+            || shapeRenderer == null
+            || initializationStageLayout == null
+            || currentItemLayout == null
+            || batch == null) return;
 
         batch.setProjectionMatrix(camera.combined);
         shapeRenderer.setProjectionMatrix(camera.combined);
@@ -126,8 +127,8 @@ public class LoadingState extends GameState {
 
         // Display the current initialization stage
         font.draw(batch, initializationStageLayout,
-            (viewport.getWorldWidth() - initializationStageLayout.width) / 2f,
-            (float) viewport.getWorldHeight() / 2f + 50f);
+            (camera.viewportWidth - initializationStageLayout.width) / 2f,
+            camera.viewportHeight / 2f + 50f);
 
         // Display the current block or item being registered
         String currentItemText;
@@ -162,6 +163,10 @@ public class LoadingState extends GameState {
         shapeRenderer.rect(x, y, barWidth * Math.min(loadingProgress, 1.0f), barHeight);
 
         shapeRenderer.end();
+
+        if ( currentStep == LoadStep.DONE ) {
+            GameStateManager.setState(new GameplayState(batch));
+        }
     }
 
     @Override

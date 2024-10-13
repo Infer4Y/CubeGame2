@@ -10,6 +10,8 @@ import inferno.cube_game.client.models.loaders.TextureLoader;
 import inferno.cube_game.client.states.GameStateManager;
 import inferno.cube_game.client.states.LoadingState;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 /** {@link ApplicationListener} implementation shared by all platforms. */
 public class Main extends ApplicationAdapter {
     private SpriteBatch batch;
@@ -20,6 +22,7 @@ public class Main extends ApplicationAdapter {
     public static GlyphLayout fpsCounter = new GlyphLayout();
 
     FPSLogger logger = new FPSLogger();
+    Thread updateThread;
 
 
     @Override
@@ -30,6 +33,18 @@ public class Main extends ApplicationAdapter {
         GameStateManager.batch = new SpriteBatch();
         GameStateManager.setState(new LoadingState(batch)); // Start with LoadingState
 
+        AtomicLong lastGameStateManagerUpdate = new AtomicLong();
+
+        updateThread = new Thread(() -> {
+            while (GameStateManager.running) {
+                if (System.currentTimeMillis() - lastGameStateManagerUpdate.get() >= 10) {
+                    GameStateManager.update(0.01f);
+                    lastGameStateManagerUpdate.set(System.currentTimeMillis());
+                }
+            }
+        });
+
+
     }
 
     @Override
@@ -37,13 +52,14 @@ public class Main extends ApplicationAdapter {
         Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         //System.out.println(Gdx.graphics.getFramesPerSecond());
-        GameStateManager.update(Gdx.graphics.getDeltaTime());
         GameStateManager.render();
 
         logger.log();
+
+        if (!updateThread.isAlive()) {
+            updateThread.start();
+        }
     }
-
-
 
     @Override
     public void resize(int width, int height) {
