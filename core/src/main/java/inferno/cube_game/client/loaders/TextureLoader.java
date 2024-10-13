@@ -1,4 +1,4 @@
-package inferno.cube_game.client.models.loaders;
+package inferno.cube_game.client.loaders;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;

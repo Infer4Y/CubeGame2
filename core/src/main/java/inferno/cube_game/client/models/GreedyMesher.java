@@ -17,12 +17,13 @@ import inferno.cube_game.common.levels.chunks.Chunk;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
 
 public class GreedyMesher {
-    private final Map<String, Material> materialCache = new HashMap<>();
-    private final Map<String, Model> modelCache = new HashMap<>();
-    private final Map<String, MeshPartBuilder> faceMeshPartBuilderCache = new HashMap<>();
+    private final ConcurrentHashMap<String, Material> materialCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Model> modelCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, MeshPartBuilder> faceMeshPartBuilderCache = new ConcurrentHashMap<>();
 
 
     private String getChunkKey(Chunk chunk) {
