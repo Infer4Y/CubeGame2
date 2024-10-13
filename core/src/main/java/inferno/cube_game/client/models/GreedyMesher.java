@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
@@ -16,9 +17,11 @@ import inferno.cube_game.client.models.blocks.FaceData;
 import inferno.cube_game.common.blocks.Block;
 import inferno.cube_game.common.levels.chunks.Chunk;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 public class GreedyMesher {
     private final Map<String, Material> materialCache = new HashMap<>();
@@ -41,21 +44,24 @@ public class GreedyMesher {
         modelBuilder.begin();
 
         int chunkSize = Chunk.CHUNK_SIZE;
-        for (int blockPositionX = 0; blockPositionX < chunkSize; blockPositionX++) {
-            for (int blockPositionY = 0; blockPositionY < chunkSize; blockPositionY++) {
-                for (int blockPositionZ = 0; blockPositionZ < chunkSize; blockPositionZ++) {
+
+        IntStream.range(0, chunkSize).forEach(blockPositionX -> {
+            IntStream.range(0, chunkSize).forEach(blockPositionY -> {
+                IntStream.range(0, chunkSize).forEach(blockPositionZ -> {
+
+
                     Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
 
                     // Block-level culling: skip if the block is completely surrounded by solid blocks
-                    if (ClientChunkHelper.canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) continue; // Skip this block
-                    if (block.isAir()) continue; // Skip air blocks
-                    if (!block.isSolid()) continue; // Skip non-solid blocks
+                    if (ClientChunkHelper.canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) return; // Skip this block
+                    if (block.isAir()) return; // Skip air blocks
+                    if (!block.isSolid()) return; // Skip non-solid blocks
 
                     BlockModel blockModel = Main.blockModelOven.createOrGetBlockModel(block);
 
-                    if (blockModel == null) continue;
-                    if (blockModel.textures.isEmpty()) continue;
-                    if (blockModel.elements.isEmpty()) continue;
+                    if (blockModel == null) return;
+                    if (blockModel.textures.isEmpty()) return;
+                    if (blockModel.elements.isEmpty()) return;
 
                     for (Element element : blockModel.elements) {
                         final var faceDirectionAndTextures = element.faces.entrySet();
@@ -69,9 +75,9 @@ public class GreedyMesher {
                                 blockPositionX, blockPositionY, blockPositionZ, faceMeshPartBuilderCache, block);
                         }
                     }
-                }
-            }
-        }
+                });
+            });
+        });
 
         if (!faceMeshPartBuilderCache.isEmpty()) {
             faceMeshPartBuilderCache.clear();
@@ -120,7 +126,7 @@ public class GreedyMesher {
         // Get the material from the face texture
         Material material = getMaterialFromFaceOfBlockModel(faceDirectionAndTexture.getValue());
 
-        if (!Objects.equals(material.id, faceDirectionAndTexture.getValue())) return;
+        //if (!Objects.equals(material.id, faceDirectionAndTexture.getValue())) return;
 
         switch (faceDirectionAndTexture.getKey()) {
             case "up" -> {
@@ -189,19 +195,46 @@ public class GreedyMesher {
         throw new Exception("Unknown face: " + faceDirectionAndTexture.getKey());
     }
 
+    /**
+     * Get the material from the face texture
+     *
+     * @param faceTexturePath Path to the face texture
+     * @return Material
+     */
     public Material getMaterialFromFaceOfBlockModel(String faceTexturePath) {
         return materialCache.computeIfAbsent(faceTexturePath, key ->
             new Material(key, TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(key)))
         );
     }
 
+    /**
+     * Get the mesh part builder for the face
+     *
+     * @param modelBuilder            ModelBuilder
+     * @param faceMeshPartBuilderCache Cache for mesh part builders
+     * @param materialForFace         Material for the face
+     * @param meshPartName            Name of the mesh part
+     * @return MeshPartBuilder
+     */
     private MeshPartBuilder getMeshPartBuilder(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material materialForFace, String meshPartName) {
         return faceMeshPartBuilderCache.computeIfAbsent(meshPartName, key -> modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
-            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
+            VertexAttributes.Usage.Position
+                | VertexAttributes.Usage.Normal
+                | VertexAttributes.Usage.TextureCoordinates,
             materialForFace));
     }
 
 
+    /**
+     * Check if the face of the block is visible
+     *
+     * @param chunk Chunk
+     * @param x     X coordinate of the block
+     * @param y     Y coordinate of the block
+     * @param z     Z coordinate of the block
+     * @param face  Face direction
+     * @return True if the face is visible, false otherwise
+     */
     private boolean isFaceVisible(Chunk chunk, int x, int y, int z, String face) {
         Block neighbor;
         switch (face) {
@@ -238,6 +271,7 @@ public class GreedyMesher {
         modelCache.values().forEach(Model::dispose);
         modelCache.keySet().clear();
     }
+
 
     public void clearMaterialCache() {
         materialCache.clear();

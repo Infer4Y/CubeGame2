@@ -135,7 +135,7 @@ public class WorldRenderer {
             int chunkZ = coords[2];
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
             if (chunk == null) continue;
-            if (chunk.onlyAir()) continue;
+            //if (chunk.onlyAir()) continue;
             //if (!isChunkBelowAir(chunkX, chunkY, chunkZ)) continue;
 
             chunkRenderer.render(batch, camera, chunk);
