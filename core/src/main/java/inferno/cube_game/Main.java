@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import inferno.cube_game.client.loaders.BlockModelOven;
 import inferno.cube_game.client.loaders.TextureLoader;
 import inferno.cube_game.client.states.GameStateManager;

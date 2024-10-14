@@ -26,7 +26,7 @@ public class WorldRenderer {
     private final float mouseSensitivity = 0.2f; // Mouse sensitivity
     private final float maxPitch = 89f; // Prevent camera from flipping
     private ShapeRenderer shapeRenderer = new ShapeRenderer();
-    private Vector3 feetPosition = new Vector3(); // Player's feet position
+    private Vector3 feetPosition; // Player's feet position
     private final float playerHeight = 1.8f; // Height of the player (camera offset)
     private final float eyeOffset = 1.4f; // Camera height offset from feet (eye level)
     private float lastCull = 0; // Last time chunks were culled
@@ -37,6 +37,7 @@ public class WorldRenderer {
         this.chunkRenderer = new ChunkRenderer(camera, environment);
         this.batch = new ModelBatch();
         Gdx.input.setCursorCatched(true); // Capture the mouse
+        feetPosition = camera.position.cpy(); // Set the feet position to the camera position
     }
 
     public void render(Camera camera, float deltaTime) {
@@ -133,12 +134,14 @@ public class WorldRenderer {
         // Load nearby chunks
         for (String loadedChunk : world.getChunkKeysToLoad(x, y, z)) {
             int[] coords = world.getChunkCoordinates(loadedChunk);
+
             int chunkX = coords[0];
             int chunkY = coords[1];
             int chunkZ = coords[2];
+
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
             if (chunk == null) continue;
-            //if (chunk.onlyAir()) continue;
+            if (chunk.onlyAir()) continue;
             //if (!isChunkBelowAir(chunkX, chunkY, chunkZ)) continue;
 
             chunkRenderer.render(batch, camera, chunk);

@@ -34,7 +34,7 @@ public class Chunk implements Serializable {
     }
 
     private void generateTerrain(int[] heightMap) {
-        IntStream.rangeClosed(0, heightMap.length).forEach(index -> {
+        IntStream.rangeClosed(0, heightMap.length).parallel().forEach(index -> {
             int z = index % Chunk.CHUNK_SIZE;
             int y = (index / Chunk.CHUNK_SIZE) % Chunk.CHUNK_SIZE;
             int x = index / (Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE);

@@ -5,11 +5,8 @@ import com.badlogic.gdx.math.Vector3;
 import inferno.cube_game.common.levels.chunks.Chunk;
 import inferno.cube_game.common.levels.chunks.ChunkGenerator;
 
-import java.util.Collection;
-import java.util.HashMap;
+import java.util.*;
 import java.util.concurrent.*;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -23,10 +20,11 @@ import java.util.stream.Stream;
 public class World {
     private ConcurrentHashMap<String, Future<Chunk>> loadingChunks; // Track chunks being generated
     private final ExecutorService chunkGeneratorExecutor;
-    private int chunkLoadRadius = 12; // Number of chunks to load around the player
-    private int chunkLoadVisableRadius = 8; // Number of chunks to load around the player
+    private int chunkLoadRadius = 64; // Number of chunks to load around the player
+    private int chunkLoadVisableRadius = 10; // Number of chunks to load around the player
     private long seed = (System.currentTimeMillis() + System.nanoTime()) / 2; // World generation seed
     private ChunkGenerator chunkGenerator = new ChunkGenerator(seed);
+    private long lastChunkUnloadTime = System.currentTimeMillis();
 
     /**
      * Create a new world
@@ -79,7 +77,7 @@ public class World {
         int playerChunkY = (int) (playerPosition.y / Chunk.CHUNK_SIZE); // Get the player's chunk Y coordinate
         int playerChunkZ = (int) (playerPosition.z / Chunk.CHUNK_SIZE); // Get the player's chunk Z coordinate
 
-        HashSet<String> chunkKeysToLoad = getChunksKeysLoadedByWorld(playerChunkX, playerChunkY, playerChunkZ, chunkLoadRadius); // Get the keys of chunks to load around the player
+        ArrayList<String> chunkKeysToLoad = getChunksKeysLoadedByWorld(playerChunkX, playerChunkY, playerChunkZ, chunkLoadRadius); // Get the keys of chunks to load around the player
 
         // Load new chunks asynchronously
         for (String key : chunkKeysToLoad) {
@@ -91,7 +89,10 @@ public class World {
             loadingChunks.computeIfAbsent(key, k -> chunkGeneratorExecutor.submit(() -> chunkGenerator.generateChunk(chunkX, chunkY, chunkZ))); // Generate the chunk and add it to the loadingChunks map
         }
 
-        cullTooFarChunks(playerChunkX, playerChunkY, playerChunkZ); // Unload chunks that are too far from the player
+        if (System.currentTimeMillis() - lastChunkUnloadTime > 1000 * 60) {
+            cullTooFarChunks(playerChunkX, playerChunkY, playerChunkZ); // Unload chunks that are too far from the player
+            lastChunkUnloadTime = System.currentTimeMillis();
+        }
     }
 
     /**
@@ -102,15 +103,16 @@ public class World {
      */
     private void cullTooFarChunks(int playerChunkX, int playerChunkY, int playerChunkZ) {
         // Unload chunks that are too far from the player
-        for (Map.Entry<String, Future<Chunk>> entry : loadingChunks.entrySet()) {
-            String key = entry.getKey(); // Get the key of the chunk
-            int[] coordinates = getChunkCoordinates(key); // Get the coordinates of the chunk
-            if (Math.abs(coordinates[0] - playerChunkX) > chunkLoadRadius ||
-                Math.abs(coordinates[1] - playerChunkY) > chunkLoadRadius ||
-                Math.abs(coordinates[2] - playerChunkZ) > chunkLoadRadius) {
-                loadingChunks.remove(key); // Remove chunks that are far away
-            }
-        }
+        loadingChunks.entrySet().removeIf(entry -> {
+            if (playerChunkX - chunkLoadRadius > chunkXFromKey(entry.getKey())) return true;
+            if (playerChunkX + chunkLoadRadius < chunkXFromKey(entry.getKey())) return true;
+            if (playerChunkY - chunkLoadRadius > chunkYFromKey(entry.getKey())) return true;
+            if (playerChunkY + chunkLoadRadius < chunkYFromKey(entry.getKey())) return true;
+            if (playerChunkZ - chunkLoadRadius > chunkZFromKey(entry.getKey())) return true;
+            if (playerChunkZ + chunkLoadRadius < chunkZFromKey(entry.getKey())) return true;
+
+            return false;
+        });
     }
 
     /**
@@ -120,7 +122,7 @@ public class World {
      * @param playerChunkZ
      * @return Set of chunk keys to load
      */
-    public HashSet<String> getChunkKeysToLoad(int playerChunkX, int playerChunkY, int playerChunkZ) {
+    public ArrayList<String> getChunkKeysToLoad(int playerChunkX, int playerChunkY, int playerChunkZ) {
         return getChunksKeysLoadedByWorld(playerChunkX, playerChunkY, playerChunkZ, chunkLoadVisableRadius);
     }
 
@@ -132,14 +134,24 @@ public class World {
      * @param chunkLoadRadius
      * @return Set of chunk keys to load
      */
-    private HashSet<String> getChunksKeysLoadedByWorld(int playerChunkX, int playerChunkY, int playerChunkZ, int chunkLoadRadius) {
+    private ArrayList<String> getChunksKeysLoadedByWorld(int playerChunkX, int playerChunkY, int playerChunkZ, int chunkLoadRadius) {
+        int diameter = chunkLoadRadius * 2; // Diameter of the chunk load radius
+        ArrayList<String> chunkKeysToLoad = new ArrayList<>(diameter * diameter * diameter); // List of chunk keys to load
         // Iterate over the range of chunks to load around the player
-        return IntStream.range(playerChunkX - chunkLoadRadius, playerChunkX + chunkLoadRadius)
-            .boxed().parallel()
-            .flatMap(x -> IntStream.range(playerChunkY - chunkLoadRadius, playerChunkY + chunkLoadRadius)
-                .boxed().parallel()
-                .flatMap(y -> IntStream.range(playerChunkZ - chunkLoadRadius, playerChunkZ + chunkLoadRadius).parallel()
-                    .mapToObj(z -> getChunkKey(x, y, z)))).collect(Collectors.toCollection(HashSet::new)); // Return the set of chunk keys
+        IntStream.range(0, diameter * diameter * diameter).forEach(index -> {
+            int z = index % diameter;
+            int y = (index / diameter) % diameter;
+            int x = index / (diameter * diameter);
+
+            // Get the chunk coordinates around the player
+            int chunkX = (playerChunkX - chunkLoadRadius) + x;
+            int chunkY = (playerChunkY - chunkLoadRadius) + y;
+            int chunkZ = (playerChunkZ - chunkLoadRadius) + z;
+
+            // Add the chunk key to the list of chunks to load
+            chunkKeysToLoad.add(getChunkKey(chunkX, chunkY, chunkZ));
+        });
+        return chunkKeysToLoad;
     }
 
     /**

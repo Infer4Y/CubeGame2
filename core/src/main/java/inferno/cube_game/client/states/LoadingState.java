@@ -15,8 +15,8 @@ import inferno.cube_game.common.registries.ItemRegistry;
 import java.util.List;
 
 public class LoadingState extends GameState {
-    private GlyphLayout initializationStageLayout = new GlyphLayout();
-    private GlyphLayout currentItemLayout = new GlyphLayout();
+    private final GlyphLayout initializationStageLayout;
+    private final GlyphLayout currentItemLayout;
     private float loadingProgress = 0.0f;
     private float timer = 0f;
     private BitmapFont font;
@@ -39,6 +39,8 @@ public class LoadingState extends GameState {
 
     public LoadingState(SpriteBatch batch) {
         super(batch);
+        initializationStageLayout = new GlyphLayout();
+        currentItemLayout = new GlyphLayout();
     }
 
     @Override
@@ -119,6 +121,8 @@ public class LoadingState extends GameState {
             || initializationStageLayout == null
             || currentItemLayout == null
             || batch == null) return;
+        if (initializationStageLayout.width == 0
+            && currentItemLayout.width == 0) return;
 
         batch.setProjectionMatrix(camera.combined);
         shapeRenderer.setProjectionMatrix(camera.combined);

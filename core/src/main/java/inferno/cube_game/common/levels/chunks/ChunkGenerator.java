@@ -17,7 +17,7 @@ public class ChunkGenerator {
     public int [] generateHeightMap(int chunkX, int chunkY, int chunkZ) {
         int[] oneDimensionalHeightMap = new int[Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE];
 
-        IntStream.rangeClosed(0, oneDimensionalHeightMap.length).forEach(index -> {
+        IntStream.rangeClosed(0, oneDimensionalHeightMap.length).parallel().forEach(index -> {
             int z = index % Chunk.CHUNK_SIZE;
             int y = (index / Chunk.CHUNK_SIZE) % Chunk.CHUNK_SIZE;
             int x = index / (Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE);
@@ -48,6 +48,7 @@ public class ChunkGenerator {
            //setHeightAtCoordinate(x, y, z, Math.max(0, height)); // Clamp height to non-negative values
 
         });
+
         return oneDimensionalHeightMap;
     }
 

@@ -53,7 +53,7 @@ public class GreedyMesher {
             Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
 
             if (block.isAir()) return; // Skip air blocks
-            if (!block.isSolid()) return; // Skip non-solid blocks
+            //if (!block.isSolid()) return; // Skip non-solid blocks
 
             BlockModel blockModel = Main.blockModelOven.createOrGetBlockModel(block);
 
@@ -105,27 +105,27 @@ public class GreedyMesher {
         // Refactor using a switch statement to handle the different faces
         switch (face) {
             case "up" -> {
-                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "up")) break;
+                //if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "up")) break;
                 makeUpFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "down" -> {
-                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "down")) break;
+                //if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "down")) break;
                 makeDownFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "north" -> {
-                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "north")) break;
+                //if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "north")) break;
                 makeNorthFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "south" -> {
-                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "south")) break;
+                //if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "south")) break;
                 makeSouthFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "west" -> {
-                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "west")) break;
+                //if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "west")) break;
                 makeWestFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "east" -> {
-                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "east")) break;
+                //if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "east")) break;
                 makeEastFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
         }
