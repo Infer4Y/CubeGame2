@@ -62,6 +62,6 @@ public class ChunkGenerator {
     // Generates a chunk based on its position and precomputed height map
     public Chunk generateChunk(int chunkX, int chunkY, int chunkZ) {
         int[] oneDimensionalHeightMap = generateHeightMap(chunkX, chunkY, chunkZ);
-        return new Chunk(seed, chunkX, chunkY, chunkZ, oneDimensionalHeightMap);
+        return new Chunk(chunkX, chunkY, chunkZ, oneDimensionalHeightMap);
     }
 }

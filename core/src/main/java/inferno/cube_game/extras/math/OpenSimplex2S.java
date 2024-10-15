@@ -1,9 +1,6 @@
 package inferno.cube_game.extras.math;
 /**
  * K.jpg's OpenSimplex 2, smooth variant ("SuperSimplex")
- *
- * More language ports, as well as legacy 2014 OpenSimplex, can be found here:
- * https://github.com/KdotJPG/OpenSimplex2
  */
 
 public class OpenSimplex2S {

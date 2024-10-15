@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 
 public class BlockRegistry {
     private static final HashMap<String, Block> BLOCKS = new HashMap<>();
+    private static final HashMap<Integer, Block> BLOCKS_BY_ID = new HashMap<>();  // ID-based lookup
+    private static int nextBlockId = 0;  // Keeps track of the next available ID
 
     public static Block AIR_BLOCK;
     public static Block DIRT_BLOCK;
@@ -19,11 +21,26 @@ public class BlockRegistry {
 
     public static void register(Block block) {
         BLOCKS.put(block.getRegistryName(), block);
-        ItemRegistry.register(new ItemBlock(block)); // Register corresponding ItemBlock
+        BLOCKS_BY_ID.put(nextBlockId, block);  // Register block by unique ID
+        nextBlockId++;
+        ItemRegistry.register(new ItemBlock(block));  // Register corresponding ItemBlock
     }
 
     public static Block getBlock(String registryName) {
         return BLOCKS.get(registryName);
+    }
+
+    public static Block getBlockById(int id) {
+        return BLOCKS_BY_ID.get(id);
+    }
+
+    public static int getIdForBlock(Block block) {
+        // Retrieve the ID for a given block by finding it in the BLOCKS_BY_ID map
+        return BLOCKS_BY_ID.entrySet().stream()
+            .filter(entry -> entry.getValue().equals(block))
+            .map(entry -> entry.getKey())
+            .findFirst()
+            .orElse(-1);  // Return -1 if block is not found (error case)
     }
 
     public static void registerDefaults() {

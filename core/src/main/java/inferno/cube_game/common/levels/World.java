@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 public class World {
     private ConcurrentHashMap<String, Future<Chunk>> loadingChunks; // Track chunks being generated
     private final ExecutorService chunkGeneratorExecutor;
-    private int chunkLoadRadius = 24; // Number of chunks to load around the player
+    private int chunkLoadRadius = 14; // Number of chunks to load around the player
     private int chunkLoadVisableRadius = 10; // Number of chunks to load around the player
     private long seed = (System.currentTimeMillis() + System.nanoTime()) / 2; // World generation seed
     private ChunkGenerator chunkGenerator = new ChunkGenerator(seed);

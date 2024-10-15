@@ -13,6 +13,7 @@ import inferno.cube_game.client.models.blocks.BlockModel;
 import inferno.cube_game.client.models.blocks.BlockModel.Element;
 import inferno.cube_game.common.blocks.Block;
 import inferno.cube_game.common.levels.chunks.Chunk;
+import inferno.cube_game.common.registries.BlockRegistry;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,15 +43,19 @@ public class GreedyMesher {
 
         modelBuilder.begin();
 
-        ConcurrentHashMap<String, Block> preculled = new ConcurrentHashMap<>();
+        int chunkSize = Chunk.CHUNK_SIZE;
 
-        tryCullingBlocks(chunk, preculled);
+        IntStream.range(0, chunkSize * chunkSize * chunkSize).forEach(index -> {
+            int blockPositionZ = index % chunkSize;
+            int blockPositionY = (index / chunkSize) % chunkSize;
+            int blockPositionX = index / (chunkSize * chunkSize);
 
-        preculled.forEach((index, block) -> {
-            String[] toSplitForCoords = index.split(",");
-            int blockPositionX = Integer.parseInt(toSplitForCoords[0]);
-            int blockPositionY = Integer.parseInt(toSplitForCoords[1]);
-            int blockPositionZ = Integer.parseInt(toSplitForCoords[2]);
+            // Block-level culling: skip if the block is completely surrounded by solid blocks
+            if (ClientChunkHelper.canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) return; // Skip this block
+
+            Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
+
+            if (block.isAir() || !block.isSolid()) return; // Skip air or non-solid blocks
 
             BlockModel blockModel = Main.blockModelOven.createOrGetBlockModel(block);
 
@@ -73,36 +78,6 @@ public class GreedyMesher {
         Model model = modelBuilder.end();
         modelCache.put(chunkKey, model); // Cache the generated model
         return model;
-    }
-
-    private void tryCullingBlocks(Chunk chunk, ConcurrentHashMap<String, Block> preculled) {
-        int chunkSize = Chunk.CHUNK_SIZE;
-
-        Map<String, Block> tempCulled = IntStream.range(0, chunkSize * chunkSize * chunkSize)
-            .parallel()
-            .unordered()
-            .mapToObj(index -> {
-                int blockPositionZ = index % chunkSize;
-                int blockPositionY = (index / chunkSize) % chunkSize;
-                int blockPositionX = index / (chunkSize * chunkSize);
-
-                // Block-level culling: skip if the block is completely surrounded by solid blocks
-                if (ClientChunkHelper.canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) {
-                    return null; // Skip this block
-                }
-
-                Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
-
-                if (block.isAir() || !block.isSolid()) return null; // Skip air or non-solid blocks
-
-                String blockKey = blockPositionX + "," + blockPositionY + "," + blockPositionZ;
-                return Map.entry(blockKey, block);
-            })
-            .filter(Objects::nonNull) // Remove null values
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        // Add all collected entries to the preculled map
-        preculled.putAll(tempCulled);
     }
 
     private void makeMeshFace(Chunk chunk, ModelBuilder modelBuilder, Element element, String face, String texture,
@@ -131,9 +106,9 @@ public class GreedyMesher {
         if (!Objects.equals(material.id, texture)) return;
 
         // Refactor using a switch statement to handle the different faces
+        if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, face)) return;
         switch (face) {
             case "up" -> {
-                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "up")) break;
                 makeUpFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "down" -> {
@@ -270,7 +245,7 @@ public class GreedyMesher {
                 neighbor = chunk.getBlock(x + 1, y, z);
                 break;
             default:
-                return true; // Unknown face
+                return false; // Unknown face
         }
         return neighbor.isAir(); // Render the face if the neighboring block is air
     }
