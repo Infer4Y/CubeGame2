@@ -123,6 +123,8 @@ public class LoadingState extends GameState {
             || batch == null) return;
         if (initializationStageLayout.width == 0
             && currentItemLayout.width == 0) return;
+        if (initializationStageLayout.height == 0
+            && currentItemLayout.height == 0) return;
 
         batch.setProjectionMatrix(camera.combined);
         shapeRenderer.setProjectionMatrix(camera.combined);

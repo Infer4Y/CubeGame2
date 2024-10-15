@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 public class World {
     private ConcurrentHashMap<String, Future<Chunk>> loadingChunks; // Track chunks being generated
     private final ExecutorService chunkGeneratorExecutor;
-    private int chunkLoadRadius = 64; // Number of chunks to load around the player
+    private int chunkLoadRadius = 24; // Number of chunks to load around the player
     private int chunkLoadVisableRadius = 10; // Number of chunks to load around the player
     private long seed = (System.currentTimeMillis() + System.nanoTime()) / 2; // World generation seed
     private ChunkGenerator chunkGenerator = new ChunkGenerator(seed);
@@ -104,6 +104,7 @@ public class World {
     private void cullTooFarChunks(int playerChunkX, int playerChunkY, int playerChunkZ) {
         // Unload chunks that are too far from the player
         loadingChunks.entrySet().removeIf(entry -> {
+
             if (playerChunkX - chunkLoadRadius > chunkXFromKey(entry.getKey())) return true;
             if (playerChunkX + chunkLoadRadius < chunkXFromKey(entry.getKey())) return true;
             if (playerChunkY - chunkLoadRadius > chunkYFromKey(entry.getKey())) return true;

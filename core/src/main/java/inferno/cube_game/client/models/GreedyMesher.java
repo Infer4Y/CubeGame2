@@ -14,10 +14,12 @@ import inferno.cube_game.client.models.blocks.BlockModel.Element;
 import inferno.cube_game.common.blocks.Block;
 import inferno.cube_game.common.levels.chunks.Chunk;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class GreedyMesher {
@@ -40,20 +42,15 @@ public class GreedyMesher {
 
         modelBuilder.begin();
 
-        int chunkSize = Chunk.CHUNK_SIZE;
+        ConcurrentHashMap<String, Block> preculled = new ConcurrentHashMap<>();
 
-        IntStream.range(0, chunkSize * chunkSize * chunkSize).forEach(index -> {
-            int blockPositionZ = index % chunkSize;
-            int blockPositionY = (index / chunkSize) % chunkSize;
-            int blockPositionX = index / (chunkSize * chunkSize);
+        tryCullingBlocks(chunk, preculled);
 
-            // Block-level culling: skip if the block is completely surrounded by solid blocks
-            if (ClientChunkHelper.canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) return; // Skip this block
-
-            Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
-
-            if (block.isAir()) return; // Skip air blocks
-            //if (!block.isSolid()) return; // Skip non-solid blocks
+        preculled.forEach((index, block) -> {
+            String[] toSplitForCoords = index.split(",");
+            int blockPositionX = Integer.parseInt(toSplitForCoords[0]);
+            int blockPositionY = Integer.parseInt(toSplitForCoords[1]);
+            int blockPositionZ = Integer.parseInt(toSplitForCoords[2]);
 
             BlockModel blockModel = Main.blockModelOven.createOrGetBlockModel(block);
 
@@ -78,6 +75,36 @@ public class GreedyMesher {
         return model;
     }
 
+    private void tryCullingBlocks(Chunk chunk, ConcurrentHashMap<String, Block> preculled) {
+        int chunkSize = Chunk.CHUNK_SIZE;
+
+        Map<String, Block> tempCulled = IntStream.range(0, chunkSize * chunkSize * chunkSize)
+            .parallel()
+            .unordered()
+            .mapToObj(index -> {
+                int blockPositionZ = index % chunkSize;
+                int blockPositionY = (index / chunkSize) % chunkSize;
+                int blockPositionX = index / (chunkSize * chunkSize);
+
+                // Block-level culling: skip if the block is completely surrounded by solid blocks
+                if (ClientChunkHelper.canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) {
+                    return null; // Skip this block
+                }
+
+                Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
+
+                if (block.isAir() || !block.isSolid()) return null; // Skip air or non-solid blocks
+
+                String blockKey = blockPositionX + "," + blockPositionY + "," + blockPositionZ;
+                return Map.entry(blockKey, block);
+            })
+            .filter(Objects::nonNull) // Remove null values
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        // Add all collected entries to the preculled map
+        preculled.putAll(tempCulled);
+    }
+
     private void makeMeshFace(Chunk chunk, ModelBuilder modelBuilder, Element element, String face, String texture,
                               int blockPositionX, int blockPositionY, int blockPositionZ,
                               Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Block block) {
@@ -97,7 +124,8 @@ public class GreedyMesher {
 
         // Get the material from the face texture
         Material material = materialCache.computeIfAbsent(texture, key ->
-            new Material(key, TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(key)))
+            new Material(key, TextureAttribute.createNormal(Main.textureLoader.loadTexture(key)),
+                TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(key)))
         );
 
         if (!Objects.equals(material.id, texture)) return;
@@ -105,27 +133,27 @@ public class GreedyMesher {
         // Refactor using a switch statement to handle the different faces
         switch (face) {
             case "up" -> {
-                //if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "up")) break;
+                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "up")) break;
                 makeUpFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "down" -> {
-                //if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "down")) break;
+                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "down")) break;
                 makeDownFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "north" -> {
-                //if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "north")) break;
+                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "north")) break;
                 makeNorthFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "south" -> {
-                //if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "south")) break;
+                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "south")) break;
                 makeSouthFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "west" -> {
-                //if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "west")) break;
+                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "west")) break;
                 makeWestFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "east" -> {
-                //if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "east")) break;
+                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "east")) break;
                 makeEastFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
         }

@@ -75,5 +75,11 @@ public class Main extends ApplicationAdapter {
         blockModelOven.dispose();
         textureLoader.dispose();
         batch.dispose();
+        font.dispose();
+        try {
+            updateThread.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
