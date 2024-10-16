@@ -18,13 +18,18 @@ import java.util.stream.Stream;
  * @author inferno4you
  */
 public class World {
-    private ConcurrentHashMap<String, Future<Chunk>> loadingChunks; // Track chunks being generated
+    private ConcurrentHashMap<Vector3, Future<Chunk>> loadingChunks; // Track chunks being generated
     private final ExecutorService chunkGeneratorExecutor;
-    private int chunkLoadRadius = 14; // Number of chunks to load around the player
-    private int chunkLoadVisableRadius = 10; // Number of chunks to load around the player
-    private long seed = (System.currentTimeMillis() + System.nanoTime()) / 2; // World generation seed
+    private int chunkLoadRadius = 10; // Number of chunks to load around the player
+    private int chunkLoadVisableRadius = 6; // Number of chunks to load around the player
+    private long seed = 0; //(System.currentTimeMillis() + System.nanoTime()) / 2; // World generation seed
     private ChunkGenerator chunkGenerator = new ChunkGenerator(seed);
     private long lastChunkUnloadTime = System.currentTimeMillis();
+
+    public static final byte[] emptyChunk = new byte[Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE];
+    static {
+        Arrays.fill(emptyChunk, (byte) -1);
+    }
 
     /**
      * Create a new world
@@ -36,13 +41,13 @@ public class World {
 
     /**
      * Get the key for a chunk based on its coordinates
-     * @param chunkX
-     * @param chunkY
-     * @param chunkZ
+     * @param chunkX the coordinate to chunk in x
+     * @param chunkY the coordinate to chunk in y
+     * @param chunkZ the coordinate to chunk in y
      * @return Chunk key
      */
-    private String getChunkKey(int chunkX, int chunkY, int chunkZ) {
-        return chunkX + "," + chunkY + "," + chunkZ; // Key is formatted as "X,Y,Z"
+    private Vector3 getChunkKey(int chunkX, int chunkY, int chunkZ) {
+        return new Vector3(chunkX, chunkY, chunkZ); // Key is formatted as "X,Y,Z"
     }
 
     /**
@@ -53,8 +58,8 @@ public class World {
      * @return Chunk object
      */
     public Chunk getChunk(int chunkX, int chunkY, int chunkZ) {
-        String key = getChunkKey(chunkX, chunkY, chunkZ); // Generate key from coordinates
-        Future<Chunk> future = loadingChunks.get(key); // Get the chunk by key
+        Vector3 key = getChunkKey(chunkX, chunkY, chunkZ); // Generate key from coordinates
+        Future<Chunk> future = loadingChunks.getOrDefault(key, null); // Get the chunk by key
         if (future == null) return null; // Return null if chunk doesn't exist
 
         if (!future.isDone()) return null; // Return null if chunk hasn't been generated yet
@@ -77,19 +82,21 @@ public class World {
         int playerChunkY = (int) (playerPosition.y / Chunk.CHUNK_SIZE); // Get the player's chunk Y coordinate
         int playerChunkZ = (int) (playerPosition.z / Chunk.CHUNK_SIZE); // Get the player's chunk Z coordinate
 
-        ArrayList<String> chunkKeysToLoad = getChunksKeysLoadedByWorld(playerChunkX, playerChunkY, playerChunkZ, chunkLoadRadius); // Get the keys of chunks to load around the player
+        ArrayList<Vector3> chunkKeysToLoad = getChunksKeysLoadedByWorld(playerChunkX, playerChunkY, playerChunkZ, chunkLoadRadius); // Get the keys of chunks to load around the player
 
         // Load new chunks asynchronously
-        for (String key : chunkKeysToLoad) {
-            int chunkX = chunkXFromKey(key); // Get the chunk X coordinate from the key
-            int chunkY = chunkYFromKey(key); // Get the chunk Y coordinate from the key
-            int chunkZ = chunkZFromKey(key); // Get the chunk Z coordinate from the key
+        chunkKeysToLoad.parallelStream().forEach(chunkKey -> {
+            int chunkX = (int) chunkKey.x; // Get the chunk X coordinate from the key
+            int chunkY = (int) chunkKey.y; // Get the chunk Y coordinate from the key
+            int chunkZ = (int) chunkKey.z; // Get the chunk Z coordinate from the key
+
 
             // Submit chunk generation as Future tasks
-            loadingChunks.computeIfAbsent(key, k -> chunkGeneratorExecutor.submit(() -> chunkGenerator.generateChunk(chunkX, chunkY, chunkZ))); // Generate the chunk and add it to the loadingChunks map
-        }
+            loadingChunks.computeIfAbsent(chunkKey, k -> chunkGeneratorExecutor.submit(() -> chunkGenerator.generateChunk(chunkX, chunkY, chunkZ))); // Generate the chunk and add it to the loadingChunks map
 
-        if (System.currentTimeMillis() - lastChunkUnloadTime > 1000 * 60) {
+        });
+
+        if (System.currentTimeMillis() - lastChunkUnloadTime > 20000) {
             cullTooFarChunks(playerChunkX, playerChunkY, playerChunkZ); // Unload chunks that are too far from the player
             lastChunkUnloadTime = System.currentTimeMillis();
         }
@@ -105,12 +112,12 @@ public class World {
         // Unload chunks that are too far from the player
         loadingChunks.entrySet().removeIf(entry -> {
 
-            if (playerChunkX - chunkLoadRadius > chunkXFromKey(entry.getKey())) return true;
-            if (playerChunkX + chunkLoadRadius < chunkXFromKey(entry.getKey())) return true;
-            if (playerChunkY - chunkLoadRadius > chunkYFromKey(entry.getKey())) return true;
-            if (playerChunkY + chunkLoadRadius < chunkYFromKey(entry.getKey())) return true;
-            if (playerChunkZ - chunkLoadRadius > chunkZFromKey(entry.getKey())) return true;
-            if (playerChunkZ + chunkLoadRadius < chunkZFromKey(entry.getKey())) return true;
+            if (playerChunkX - chunkLoadRadius > entry.getKey().x) return true;
+            if (playerChunkX + chunkLoadRadius < entry.getKey().x) return true;
+            if (playerChunkY - chunkLoadRadius > entry.getKey().y) return true;
+            if (playerChunkY + chunkLoadRadius < entry.getKey().y) return true;
+            if (playerChunkZ - chunkLoadRadius > entry.getKey().z) return true;
+            if (playerChunkZ + chunkLoadRadius < entry.getKey().z) return true;
 
             return false;
         });
@@ -123,7 +130,7 @@ public class World {
      * @param playerChunkZ
      * @return Set of chunk keys to load
      */
-    public ArrayList<String> getChunkKeysToLoad(int playerChunkX, int playerChunkY, int playerChunkZ) {
+    public ArrayList<Vector3> getChunkKeysToLoad(int playerChunkX, int playerChunkY, int playerChunkZ) {
         return getChunksKeysLoadedByWorld(playerChunkX, playerChunkY, playerChunkZ, chunkLoadVisableRadius);
     }
 
@@ -135,9 +142,9 @@ public class World {
      * @param chunkLoadRadius
      * @return Set of chunk keys to load
      */
-    private ArrayList<String> getChunksKeysLoadedByWorld(int playerChunkX, int playerChunkY, int playerChunkZ, int chunkLoadRadius) {
+    private ArrayList<Vector3> getChunksKeysLoadedByWorld(int playerChunkX, int playerChunkY, int playerChunkZ, int chunkLoadRadius) {
         int diameter = chunkLoadRadius * 2; // Diameter of the chunk load radius
-        ArrayList<String> chunkKeysToLoad = new ArrayList<>(diameter * diameter * diameter); // List of chunk keys to load
+        ArrayList<Vector3> chunkKeysToLoad = new ArrayList<>(diameter * diameter * diameter); // List of chunk keys to load
         // Iterate over the range of chunks to load around the player
         IntStream.range(0, diameter * diameter * diameter).forEach(index -> {
             int z = index % diameter;
@@ -153,36 +160,6 @@ public class World {
             chunkKeysToLoad.add(getChunkKey(chunkX, chunkY, chunkZ));
         });
         return chunkKeysToLoad;
-    }
-
-    /**
-     * Get the X coordinate of a chunk from its key. The key is formatted as "X,Y,Z".
-     * This method splits the key by commas and returns the X coordinate.
-     * @param key
-     * @return X coordinate of the chunk
-     */
-    private int chunkXFromKey(String key) {
-        return Integer.parseInt(key.split(",")[0]);
-    }
-
-    /**
-     * Get the Y coordinate of a chunk from its key. The key is formatted as "X,Y,Z".
-     * This method splits the key by commas and returns the Y coordinate.
-     * @param key
-     * @return Y coordinate of the chunk
-     */
-    private int chunkYFromKey(String key) {
-        return Integer.parseInt(key.split(",")[1]);
-    }
-
-    /**
-     * Get the Z coordinate of a chunk from its key. The key is formatted as "X,Y,Z".
-     * This method splits the key by commas and returns the Z coordinate.
-     * @param key
-     * @return Z coordinate of the chunk
-     */
-    private int chunkZFromKey(String key) {
-        return Integer.parseInt(key.split(",")[2]);
     }
 
     /**

@@ -3,12 +3,17 @@ package inferno.cube_game.common.levels.chunks;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import inferno.cube_game.common.blocks.Block;
+import inferno.cube_game.common.levels.World;
 import inferno.cube_game.common.registries.BlockRegistry;
+import inferno.cube_game.extras.utils.MapUtils;
 
 import java.io.Serializable;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 
 public class Chunk implements Serializable {
@@ -23,8 +28,9 @@ public class Chunk implements Serializable {
         this.chunkY = chunkY;
         this.chunkZ = chunkZ;
         this.blockPaletteIndices = new byte[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
+        Arrays.fill(blockPaletteIndices, (byte) -1);
         this.palette = new ConcurrentHashMap<>();
-        this.palette.put((byte) 0, BlockRegistry.AIR_BLOCK);
+        this.palette.put((byte) -1, BlockRegistry.AIR_BLOCK);
 
         generateTerrain(heightMap);
         setBoundingBox();
@@ -46,8 +52,12 @@ public class Chunk implements Serializable {
 
             if (chunkY * CHUNK_SIZE + y < height) {
                 setBlock(x, y, z, BlockRegistry.GRASS_BLOCK);
-            } else {
-                setBlock(x, y, z, BlockRegistry.AIR_BLOCK);
+            } else if (chunkY * CHUNK_SIZE + y - 1 < height  ) {
+                setBlock(x,y,z, BlockRegistry.STONE_BLOCK);
+            } else if (chunkY * CHUNK_SIZE + y - 2 < height  ) {
+                setBlock(x,y,z, BlockRegistry.DIRT_BLOCK);
+            } else if (chunkY * CHUNK_SIZE + y - 3 < height  ) {
+                setBlock(x,y,z, BlockRegistry.BRICK_BLOCK);
             }
         });
     }
@@ -64,7 +74,7 @@ public class Chunk implements Serializable {
             return BlockRegistry.AIR_BLOCK;
         }
         byte paletteIndex = blockPaletteIndices[x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z];
-        return palette.getOrDefault(paletteIndex, BlockRegistry.AIR_BLOCK); // Get block from palette
+        return palette.get(paletteIndex); // Get block from palette
     }
 
     public void setBlock(int x, int y, int z, Block block) {
@@ -77,18 +87,21 @@ public class Chunk implements Serializable {
 
     private byte getOrAddToPalette(Block block) {
         // Search for the block in the palette
-        for (Map.Entry<Byte, Block> entry : palette.entrySet()) {
-            if (entry.getValue().equals(block)) {
-                return entry.getKey();
-            }
+        if (palette.contains(block)) {
+            Set<Byte> bytesInPallet = MapUtils.getKeysByValue(palette, block);
+            if (!bytesInPallet.isEmpty()) return bytesInPallet.iterator().next();
         }
+
 
         // If not found, add it to the palette
         byte newPaletteIndex = (byte) palette.size();
+
         if (newPaletteIndex >= 256) {
             throw new RuntimeException("Palette overflow in chunk!"); // Palette can store max 256 blocks
         }
+
         palette.put(newPaletteIndex, block);
+
         return newPaletteIndex;
     }
 
@@ -109,7 +122,7 @@ public class Chunk implements Serializable {
     }
 
     public boolean onlyAir() {
-        return IntStream.range(0, blockPaletteIndices.length).allMatch(i -> blockPaletteIndices[i] == (byte) 0);
+        return Arrays.equals(blockPaletteIndices, World.emptyChunk);
     }
 
     public boolean hasAirInFirstLayer() {

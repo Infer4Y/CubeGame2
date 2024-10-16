@@ -17,7 +17,7 @@ public class ChunkGenerator {
     public int [] generateHeightMap(int chunkX, int chunkY, int chunkZ) {
         int[] oneDimensionalHeightMap = new int[Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE];
 
-        IntStream.rangeClosed(0, oneDimensionalHeightMap.length).forEach(index -> {
+        IntStream.rangeClosed(0, oneDimensionalHeightMap.length).parallel().forEach(index -> {
             int z = index % Chunk.CHUNK_SIZE;
             int y = (index / Chunk.CHUNK_SIZE) % Chunk.CHUNK_SIZE;
             int x = index / (Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE);
@@ -34,7 +34,7 @@ public class ChunkGenerator {
 
             double detailLayer = OpenSimplex2S.noise2(seed + 200, worldX * 4.0, worldZ * 4.0) * 4;
 
-            double baseHeight = OpenSimplex2S.noise4_Fallback(seed, worldX, worldY, worldZ, detailLayer + worldX + worldY + worldZ) * 32;
+            double baseHeight = OpenSimplex2S.noise4_ImproveXYZ(seed, worldX, worldY, worldZ, detailLayer + worldX + worldY + worldZ) * 32;
 
             double mountainLayer = OpenSimplex2S.noise3_ImproveXZ(seed + 100,
                 (worldX + mountainNoiseX) / 128.0 ,

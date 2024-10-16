@@ -129,13 +129,6 @@ public class LoadingState extends GameState {
         batch.setProjectionMatrix(camera.combined);
         shapeRenderer.setProjectionMatrix(camera.combined);
 
-        batch.begin();
-
-        // Display the current initialization stage
-        font.draw(batch, initializationStageLayout,
-            (camera.viewportWidth - initializationStageLayout.width) / 2f,
-            camera.viewportHeight / 2f + 50f);
-
         // Display the current block or item being registered
         String currentItemText;
         if (currentStep == LoadStep.REGISTER_BLOCKS && currentBlockIndex > 0) {
@@ -146,6 +139,15 @@ public class LoadingState extends GameState {
         } else {
             currentItemText = "";
         }
+
+        batch.begin();
+
+        // Display the current initialization stage
+        font.draw(batch, initializationStageLayout,
+            (camera.viewportWidth - initializationStageLayout.width) / 2f,
+            camera.viewportHeight / 2f + 50f);
+
+
         currentItemLayout.setText(font, currentItemText);
         font.draw(batch, currentItemLayout,
             (viewport.getWorldWidth() - currentItemLayout.width) / 2f,

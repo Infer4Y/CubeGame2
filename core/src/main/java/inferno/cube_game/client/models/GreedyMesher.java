@@ -65,6 +65,8 @@ public class GreedyMesher {
 
             blockModel.elements.forEach(element -> {
                 element.faces.forEach((faceDirection, textureKey) -> {
+                    if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, faceDirection)) return;
+
                     makeMeshFace(chunk, modelBuilder, element, faceDirection, blockModel.textures.get(textureKey),
                         blockPositionX, blockPositionY, blockPositionZ, faceMeshPartBuilderCache, block);
                 });
@@ -85,9 +87,9 @@ public class GreedyMesher {
                               Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Block block) {
 
         // Out of the entire block, just the element's dimensions
-        float faceWidth = element.to.x - element.from.x;
-        float faceHeight = element.to.y - element.from.y;
-        float faceDepth = element.to.z - element.from.z;
+        float faceWidth = (element.to.x - element.from.x)  /2;
+        float faceHeight = (element.to.y - element.from.y) /2;
+        float faceDepth = (element.to.z - element.from.z)  /2;
 
         // Get the position based on the element's dimensions and chunk position
         float facePositionX = element.from.x + blockPositionX;
@@ -106,7 +108,6 @@ public class GreedyMesher {
         if (!Objects.equals(material.id, texture)) return;
 
         // Refactor using a switch statement to handle the different faces
-        if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, face)) return;
         switch (face) {
             case "up" -> {
                 makeUpFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
@@ -137,61 +138,61 @@ public class GreedyMesher {
 
     private void makeEastFace(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material material, String meshPartName, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
         getMeshPartBuilder(modelBuilder, faceMeshPartBuilderCache, material, meshPartName).rect(
-            facePositionX + faceWidth / 2, facePositionY - faceHeight / 2, facePositionZ + faceDepth / 2,  // bottom-left
-            facePositionX + faceWidth / 2, facePositionY - faceHeight / 2, facePositionZ - faceDepth / 2,  // bottom-right
-            facePositionX + faceWidth / 2, facePositionY + faceHeight / 2, facePositionZ - faceDepth / 2,  // top-right
-            facePositionX + faceWidth / 2, facePositionY + faceHeight / 2, facePositionZ + faceDepth / 2,  // top-left
-            1, 0, 0 // Normal (east)
+            new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // bottom-left
+            new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // bottom-right
+            new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ - faceDepth),  // top-right
+            new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // top-left
+            new Vector3(1, 0, 0) // Normal (east)
         );
     }
 
     private void makeWestFace(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material material, String meshPartName, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
         getMeshPartBuilder(modelBuilder, faceMeshPartBuilderCache, material, meshPartName).rect(
-            facePositionX - faceWidth / 2, facePositionY - faceHeight / 2, facePositionZ - faceDepth / 2,  // Bottom-right
-            facePositionX - faceWidth / 2, facePositionY - faceHeight / 2, facePositionZ + faceDepth / 2,  // Bottom-left
-            facePositionX - faceWidth / 2, facePositionY + faceHeight / 2, facePositionZ + faceDepth / 2,  // Top-left
-            facePositionX - faceWidth / 2, facePositionY + faceHeight / 2, facePositionZ - faceDepth / 2,  // Top-right
-            -1, 0, 0 // Normal (west)
+            new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Bottom-right
+            new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Bottom-left
+            new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-left
+            new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ - faceDepth),  // Top-right
+            new Vector3(-1, 0, 0) // Normal (west)
         );
     }
 
     private void makeSouthFace(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material material, String meshPartName, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
         getMeshPartBuilder(modelBuilder, faceMeshPartBuilderCache, material, meshPartName).rect(
-            facePositionX - faceWidth / 2, facePositionY - faceHeight / 2, facePositionZ + faceDepth / 2,  // Bottom-left
-            facePositionX + faceWidth / 2, facePositionY - faceHeight / 2, facePositionZ + faceDepth / 2,  // Bottom-right
-            facePositionX + faceWidth / 2, facePositionY + faceHeight / 2, facePositionZ + faceDepth / 2,  // Top-right
-            facePositionX - faceWidth / 2, facePositionY + faceHeight / 2, facePositionZ + faceDepth / 2,  // Top-left
-            0, 0, 1 // Normal (south)
+            new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Bottom-left
+            new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Bottom-right
+            new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-right
+            new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-left
+            new Vector3(0, 0, 1)// Normal (south)
         );
     }
 
     private void makeNorthFace(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material material, String meshPartName, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
         getMeshPartBuilder(modelBuilder, faceMeshPartBuilderCache, material, meshPartName).rect(
-            facePositionX + faceWidth / 2, facePositionY - faceHeight / 2, facePositionZ - faceDepth / 2,  // Bottom-right
-            facePositionX - faceWidth / 2, facePositionY - faceHeight / 2, facePositionZ - faceDepth / 2,  // Bottom-left
-            facePositionX - faceWidth / 2, facePositionY + faceHeight / 2, facePositionZ - faceDepth / 2,  // Top-left
-            facePositionX + faceWidth / 2, facePositionY + faceHeight / 2, facePositionZ - faceDepth / 2,  // Top-right
-            0, 0, -1 // Normal (north)
+            new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Bottom-right
+            new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Bottom-left
+            new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ - faceDepth),  // Top-left
+            new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ - faceDepth),  // Top-right
+            new Vector3(0, 0, -1) // Normal (north)
         );
     }
 
     private void makeDownFace(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material material, String meshPartName, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
         getMeshPartBuilder(modelBuilder, faceMeshPartBuilderCache, material, meshPartName).rect(
-            facePositionX + faceWidth / 2, facePositionY - faceHeight / 2, facePositionZ - faceDepth / 2,  // Top-left
-            facePositionX + faceWidth / 2, facePositionY - faceHeight / 2, facePositionZ + faceDepth / 2,  // Top-right
-            facePositionX - faceWidth / 2, facePositionY - faceHeight / 2, facePositionZ + faceDepth / 2,  // Bottom-right
-            facePositionX - faceWidth / 2, facePositionY - faceHeight / 2, facePositionZ - faceDepth / 2,  // Bottom-left
-            0, -1, 0 // Normal (down)
+            new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Top-left
+            new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Top-right
+            new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Bottom-right
+            new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Bottom-left
+            new Vector3(0, -1, 0) // Normal (down)
         );
     }
 
     private void makeUpFace(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material material, String meshPartName, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
         getMeshPartBuilder(modelBuilder, faceMeshPartBuilderCache, material, meshPartName).rect(
-            facePositionX - faceWidth / 2, facePositionY + faceHeight / 2, facePositionZ + faceDepth / 2,  // Top-left
-            facePositionX + faceWidth / 2, facePositionY + faceHeight / 2, facePositionZ + faceDepth / 2,  // Top-right
-            facePositionX + faceWidth / 2, facePositionY + faceHeight / 2, facePositionZ - faceDepth / 2,  // Bottom-right
-            facePositionX - faceWidth / 2, facePositionY + faceHeight / 2, facePositionZ - faceDepth / 2,  // Bottom-left
-            0, 1, 0 // Normal (up)
+            new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-left
+            new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-right
+            new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ - faceDepth),  // Bottom-right
+            new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ - faceDepth),  // Bottom-left
+            new Vector3(0, 1, 0) // Normal (up)
         );
     }
 

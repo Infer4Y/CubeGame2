@@ -24,11 +24,10 @@ public class GameStateManager {
     }
 
     public static void render() {
-        if (currentState != null)
-            currentState.render();
-
         if (Main.fpsCounter == null) return;
         if (Main.font == null) return;
+        if (currentState != null)
+            currentState.render();
 
         Main.fpsCounter.setText(Main.font, "FPS : " + Gdx.graphics.getFramesPerSecond() +
             "\nDelta Time : " + Gdx.graphics.getDeltaTime() +

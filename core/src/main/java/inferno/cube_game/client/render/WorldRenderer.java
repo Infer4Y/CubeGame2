@@ -131,13 +131,12 @@ public class WorldRenderer {
         int y = (int) (frustumPosition.y / Chunk.CHUNK_SIZE);
         int z = (int) (frustumPosition.z / Chunk.CHUNK_SIZE);
 
+        batch.begin(camera);
         // Load nearby chunks
-        for (String loadedChunk : world.getChunkKeysToLoad(x, y, z)) {
-            int[] coords = world.getChunkCoordinates(loadedChunk);
-
-            int chunkX = coords[0];
-            int chunkY = coords[1];
-            int chunkZ = coords[2];
+        for (Vector3 loadedChunk : world.getChunkKeysToLoad(x, y, z)) {
+            int chunkX = (int) loadedChunk.x;
+            int chunkY = (int) loadedChunk.y;
+            int chunkZ = (int) loadedChunk.z;
 
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
             if (chunk == null) continue;
@@ -146,6 +145,8 @@ public class WorldRenderer {
 
             chunkRenderer.render(batch, camera, chunk);
         }
+
+        batch.end();
     }
 
     private boolean isChunkBelowAir(int chunkX, int chunkY, int chunkZ) {

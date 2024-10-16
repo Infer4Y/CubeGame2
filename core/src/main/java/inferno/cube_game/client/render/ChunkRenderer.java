@@ -9,12 +9,15 @@ import com.badlogic.gdx.math.collision.BoundingBox;
 import inferno.cube_game.client.models.GreedyMesher;
 import inferno.cube_game.common.levels.chunks.Chunk;
 
+import java.util.HashMap;
+
 public class ChunkRenderer {
     private Environment environment;
     private BoundingBox chunkBoundingBox;
     private Model chunkModel;
     private ModelInstance chunkInstance;
     private GreedyMesher greedyMesher;
+    private long lastCullTime;
 
     public ChunkRenderer(Camera camera, Environment environment) {
         this.environment = environment;
@@ -27,11 +30,15 @@ public class ChunkRenderer {
             buildChunkModel(chunk);
         }
 
-        modelBatch.begin(camera);
+        chunkInstance = new ModelInstance(chunkModel);
+
+        chunkInstance.transform.setToTranslation(chunk.getChunkX() * Chunk.CHUNK_SIZE, chunk.getChunkY() * Chunk.CHUNK_SIZE, chunk.getChunkZ() * Chunk.CHUNK_SIZE);
+
         modelBatch.render(chunkInstance, environment);
-        modelBatch.end();
 
         chunkModel = null;
+        chunkInstance = null;
+
     }
 
     private void buildChunkModel(Chunk chunk) {
@@ -39,9 +46,7 @@ public class ChunkRenderer {
 
         chunkModel = greedyMesher.generateMesh(chunk, modelBuilder);
 
-        chunkInstance = new ModelInstance(chunkModel);
-        chunkInstance.transform.setToTranslation(chunk.getChunkX() * Chunk.CHUNK_SIZE, chunk.getChunkY() * Chunk.CHUNK_SIZE, chunk.getChunkZ() * Chunk.CHUNK_SIZE);
-    }
+     }
 
     public void dispose() {
         if (chunkModel != null) {

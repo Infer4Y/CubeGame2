@@ -31,7 +31,7 @@ public class DynamicSky {
     private void updateSkyColor() {
         Color morningColor = Color.valueOf("#87CEEB"); // Light blue
         Color middayColor = Color.valueOf("#00BFFF"); // Sky blue
-        Color eveningColor = Color.valueOf("#FF4500"); // Orange
+        Color eveningColor = Color.valueOf("#A14500"); // Orange
         Color nightColor = Color.valueOf("#000000"); // Dark color
 
         if (timeOfDay < 0.25f) { // Morning
