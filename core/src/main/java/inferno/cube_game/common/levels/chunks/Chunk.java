@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 
 public class Chunk implements Serializable {
-    public static final int CHUNK_SIZE = 24;
+    public static final int CHUNK_SIZE = 16;
     private byte[] blockPaletteIndices; // Store indices instead of block IDs
     private ConcurrentHashMap<Byte, Block> palette;   // The palette maps indices to blocks
     private int chunkX, chunkY, chunkZ;
@@ -52,12 +52,10 @@ public class Chunk implements Serializable {
 
             if (chunkY * CHUNK_SIZE + y < height) {
                 setBlock(x, y, z, BlockRegistry.GRASS_BLOCK);
-            } else if (chunkY * CHUNK_SIZE + y - 1 < height  ) {
+            } else if (chunkY * CHUNK_SIZE + y - 5 < height  ) {
                 setBlock(x,y,z, BlockRegistry.STONE_BLOCK);
-            } else if (chunkY * CHUNK_SIZE + y - 2 < height  ) {
-                setBlock(x,y,z, BlockRegistry.DIRT_BLOCK);
-            } else if (chunkY * CHUNK_SIZE + y - 3 < height  ) {
-                setBlock(x,y,z, BlockRegistry.BRICK_BLOCK);
+            } else if (chunkY * CHUNK_SIZE + y - 12 < height  ) {
+                setBlock(x, y, z, BlockRegistry.DIRT_BLOCK);
             }
         });
     }

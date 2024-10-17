@@ -13,14 +13,9 @@ import inferno.cube_game.client.models.blocks.BlockModel;
 import inferno.cube_game.client.models.blocks.BlockModel.Element;
 import inferno.cube_game.common.blocks.Block;
 import inferno.cube_game.common.levels.chunks.Chunk;
-import inferno.cube_game.common.registries.BlockRegistry;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class GreedyMesher {
@@ -28,16 +23,11 @@ public class GreedyMesher {
     private final ConcurrentHashMap<String, Model> modelCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, MeshPartBuilder> faceMeshPartBuilderCache = new ConcurrentHashMap<>();
 
-
-    private String getChunkKey(Chunk chunk) {
-        return chunk.getChunkX() + "," + chunk.getChunkY() + "," + chunk.getChunkZ();
-    }
-
     public Model generateMesh(Chunk chunk, ModelBuilder modelBuilder) {
-        String chunkKey = getChunkKey(chunk);
+        String chunkKey = new Vector3(chunk.getChunkX(), chunk.getChunkY(), chunk.getChunkZ()).toString();
 
         // Check if the model is already cached
-        if (modelCache.containsKey(chunkKey)) {
+        if (modelCache.get(chunkKey) != null) {
             return modelCache.get(chunkKey); // Return cached model
         }
 
@@ -51,7 +41,7 @@ public class GreedyMesher {
             int blockPositionX = index / (chunkSize * chunkSize);
 
             // Block-level culling: skip if the block is completely surrounded by solid blocks
-            if (ClientChunkHelper.canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) return; // Skip this block
+            //if (ClientChunkHelper.canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) return; // Skip this block
 
             Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
 
@@ -65,9 +55,9 @@ public class GreedyMesher {
 
             blockModel.elements.forEach(element -> {
                 element.faces.forEach((faceDirection, textureKey) -> {
-                    if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, faceDirection)) return;
+                    if (isFaceNotVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, faceDirection)) return;
 
-                    makeMeshFace(chunk, modelBuilder, element, faceDirection, blockModel.textures.get(textureKey),
+                    makeMeshFace(modelBuilder, element, faceDirection, blockModel.textures.get(textureKey),
                         blockPositionX, blockPositionY, blockPositionZ, faceMeshPartBuilderCache, block);
                 });
             });
@@ -82,7 +72,7 @@ public class GreedyMesher {
         return model;
     }
 
-    private void makeMeshFace(Chunk chunk, ModelBuilder modelBuilder, Element element, String face, String texture,
+    private void makeMeshFace(ModelBuilder modelBuilder, Element element, String face, String texture,
                               int blockPositionX, int blockPositionY, int blockPositionZ,
                               Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Block block) {
 
@@ -97,47 +87,45 @@ public class GreedyMesher {
         float facePositionZ = element.from.z + blockPositionZ;
 
         // Create the meshPartName for this face
-        String meshPartName = block.getDomain() + "_" + block.getRegistryName() + "_face_of_block_" + face;
+        String meshPartName = block.getDomain().concat("_").concat(block.getRegistryName()).concat("_face_of_block_").concat(face);
 
         // Get the material from the face texture
-        Material material = materialCache.computeIfAbsent(texture, key ->
-            new Material(key, TextureAttribute.createNormal(Main.textureLoader.loadTexture(key)),
-                TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(key)))
-        );
+        MeshPartBuilder builder = faceMeshPartBuilderCache.computeIfAbsent(meshPartName, key -> {
+            Material material = materialCache.computeIfAbsent(texture, tKey ->
+                new Material(TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(tKey)))
+            );
+            return modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates, material);
+        });
 
-        if (!Objects.equals(material.id, texture)) return;
+        //if (!Objects.equals(material.id, texture)) return;
 
         // Refactor using a switch statement to handle the different faces
         switch (face) {
             case "up" -> {
-                makeUpFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+                makeUpFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "down" -> {
-                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "down")) break;
-                makeDownFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+                makeDownFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "north" -> {
-                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "north")) break;
-                makeNorthFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+                makeNorthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "south" -> {
-                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "south")) break;
-                makeSouthFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+                makeSouthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "west" -> {
-                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "west")) break;
-                makeWestFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+                makeWestFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
             case "east" -> {
-                if (!isFaceVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, "east")) break;
-                makeEastFace(modelBuilder, faceMeshPartBuilderCache, material, meshPartName, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+                makeEastFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             }
         }
     }
 
 
-    private void makeEastFace(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material material, String meshPartName, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
-        getMeshPartBuilder(modelBuilder, faceMeshPartBuilderCache, material, meshPartName).rect(
+    private void makeEastFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+        modelBuilder.rect(
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // bottom-left
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // bottom-right
             new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ - faceDepth),  // top-right
@@ -146,8 +134,8 @@ public class GreedyMesher {
         );
     }
 
-    private void makeWestFace(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material material, String meshPartName, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
-        getMeshPartBuilder(modelBuilder, faceMeshPartBuilderCache, material, meshPartName).rect(
+    private void makeWestFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+        modelBuilder.rect(
             new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Bottom-right
             new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Bottom-left
             new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-left
@@ -156,8 +144,8 @@ public class GreedyMesher {
         );
     }
 
-    private void makeSouthFace(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material material, String meshPartName, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
-        getMeshPartBuilder(modelBuilder, faceMeshPartBuilderCache, material, meshPartName).rect(
+    private void makeSouthFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+        modelBuilder.rect(
             new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Bottom-left
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Bottom-right
             new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-right
@@ -166,8 +154,8 @@ public class GreedyMesher {
         );
     }
 
-    private void makeNorthFace(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material material, String meshPartName, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
-        getMeshPartBuilder(modelBuilder, faceMeshPartBuilderCache, material, meshPartName).rect(
+    private void makeNorthFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+        modelBuilder.rect(
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Bottom-right
             new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Bottom-left
             new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ - faceDepth),  // Top-left
@@ -176,8 +164,8 @@ public class GreedyMesher {
         );
     }
 
-    private void makeDownFace(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material material, String meshPartName, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
-        getMeshPartBuilder(modelBuilder, faceMeshPartBuilderCache, material, meshPartName).rect(
+    private void makeDownFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+        modelBuilder.rect(
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Top-left
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Top-right
             new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Bottom-right
@@ -186,8 +174,8 @@ public class GreedyMesher {
         );
     }
 
-    private void makeUpFace(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material material, String meshPartName, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
-        getMeshPartBuilder(modelBuilder, faceMeshPartBuilderCache, material, meshPartName).rect(
+    private void makeUpFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+        modelBuilder.rect(
             new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-left
             new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-right
             new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ - faceDepth),  // Bottom-right
@@ -195,24 +183,6 @@ public class GreedyMesher {
             new Vector3(0, 1, 0) // Normal (up)
         );
     }
-
-    /**
-     * Get the mesh part builder for the face
-     *
-     * @param modelBuilder            ModelBuilder
-     * @param faceMeshPartBuilderCache Cache for mesh part builders
-     * @param materialForFace         Material for the face
-     * @param meshPartName            Name of the mesh part
-     * @return MeshPartBuilder
-     */
-    private MeshPartBuilder getMeshPartBuilder(ModelBuilder modelBuilder, Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Material materialForFace, String meshPartName) {
-        return faceMeshPartBuilderCache.computeIfAbsent(meshPartName, key -> modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
-            VertexAttributes.Usage.Position
-                | VertexAttributes.Usage.Normal
-                | VertexAttributes.Usage.TextureCoordinates,
-            materialForFace));
-    }
-
 
     /**
      * Check if the face of the block is visible
@@ -224,7 +194,7 @@ public class GreedyMesher {
      * @param face  Face direction
      * @return True if the face is visible, false otherwise
      */
-    private boolean isFaceVisible(Chunk chunk, int x, int y, int z, String face) {
+    private boolean isFaceNotVisible(Chunk chunk, int x, int y, int z, String face) {
         Block neighbor;
         switch (face) {
             case "up":
@@ -246,9 +216,9 @@ public class GreedyMesher {
                 neighbor = chunk.getBlock(x + 1, y, z);
                 break;
             default:
-                return false; // Unknown face
+                return true; // Unknown face
         }
-        return neighbor.isAir(); // Render the face if the neighboring block is air
+        return !neighbor.isAir(); // Render the face if the neighboring block is air
     }
 
     public void dispose() {

@@ -26,8 +26,13 @@ public class GameStateManager {
     public static void render() {
         if (Main.fpsCounter == null) return;
         if (Main.font == null) return;
-        if (currentState != null)
-            currentState.render();
+        try {
+            if (currentState != null)
+                currentState.render();
+        } catch (Exception e) {
+            Gdx.app.log("GameStateManager",
+                currentState.toString().concat(" had an issue during rendering at : ").concat(e.getMessage()));
+        }
 
         Main.fpsCounter.setText(Main.font, "FPS : " + Gdx.graphics.getFramesPerSecond() +
             "\nDelta Time : " + Gdx.graphics.getDeltaTime() +

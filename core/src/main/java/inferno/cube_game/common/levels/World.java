@@ -59,7 +59,8 @@ public class World {
      */
     public Chunk getChunk(int chunkX, int chunkY, int chunkZ) {
         Vector3 key = getChunkKey(chunkX, chunkY, chunkZ); // Generate key from coordinates
-        Future<Chunk> future = loadingChunks.getOrDefault(key, null); // Get the chunk by key
+        Future<Chunk> future = loadingChunks.get(key); // Get the chunk by key
+
         if (future == null) return null; // Return null if chunk doesn't exist
 
         if (!future.isDone()) return null; // Return null if chunk hasn't been generated yet

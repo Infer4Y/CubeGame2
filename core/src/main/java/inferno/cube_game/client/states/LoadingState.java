@@ -71,7 +71,6 @@ public class LoadingState extends GameState {
 
             case REGISTER_BLOCKS:
                 if (currentBlockIndex < blockNames.size() && timer > 0.25f) {
-                    String blockName = blockNames.get(currentBlockIndex);
                     initializationStageLayout.setText(font, "Registering Blocks");
                     currentBlockIndex++;
                     loadingProgress += 0.2f; // Increment loading progress
@@ -88,7 +87,6 @@ public class LoadingState extends GameState {
 
             case REGISTER_ITEMS:
                 if (currentItemIndex < itemNames.size() && timer > 0.25f) {
-                    String itemName = itemNames.get(currentItemIndex);
                     initializationStageLayout.setText(font, "Registering Items");
                     currentItemIndex++;
                     loadingProgress += 0.2f; // Increment loading progress
@@ -126,6 +124,8 @@ public class LoadingState extends GameState {
         if (initializationStageLayout.height == 0
             && currentItemLayout.height == 0) return;
 
+        if (batch.isDrawing()) batch.end(); //
+
         batch.setProjectionMatrix(camera.combined);
         shapeRenderer.setProjectionMatrix(camera.combined);
 
@@ -151,7 +151,7 @@ public class LoadingState extends GameState {
         currentItemLayout.setText(font, currentItemText);
         font.draw(batch, currentItemLayout,
             (viewport.getWorldWidth() - currentItemLayout.width) / 2f,
-            (float) viewport.getWorldHeight() / 2f - 60f);
+            viewport.getWorldHeight() / 2f - 60f);
 
         batch.end();
 
