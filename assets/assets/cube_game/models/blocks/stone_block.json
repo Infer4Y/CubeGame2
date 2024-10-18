@@ -16,8 +16,8 @@
         "south":  "texture0",
         "east":  "texture0",
         "west": "texture0",
-        "up":  "texture0",
-        "down": "texture0"
+        "top":  "texture0",
+        "bottom": "texture0"
       }
     }
   ],

@@ -124,7 +124,6 @@ public class LoadingState extends GameState {
         if (initializationStageLayout.height == 0
             && currentItemLayout.height == 0) return;
 
-        if (batch.isDrawing()) batch.end(); //
 
         batch.setProjectionMatrix(camera.combined);
         shapeRenderer.setProjectionMatrix(camera.combined);

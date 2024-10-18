@@ -4,6 +4,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import inferno.cube_game.Main;
 
+import java.util.Arrays;
+
 public class GameStateManager {
     private static GameState currentState;
     public static SpriteBatch batch;
@@ -26,12 +28,13 @@ public class GameStateManager {
     public static void render() {
         if (Main.fpsCounter == null) return;
         if (Main.font == null) return;
+        if (batch.isDrawing()) batch.end();
         try {
             if (currentState != null)
                 currentState.render();
         } catch (Exception e) {
             Gdx.app.log("GameStateManager",
-                currentState.toString().concat(" had an issue during rendering at : ").concat(e.getMessage()));
+                currentState.toString().concat(" had an issue during rendering at : ").concat(Arrays.toString(e.getStackTrace())));
         }
 
         Main.fpsCounter.setText(Main.font, "FPS : " + Gdx.graphics.getFramesPerSecond() +

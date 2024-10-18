@@ -16,8 +16,8 @@
         "south":  "sides",
         "east":  "sides",
         "west": "sides",
-        "up":  "top",
-        "down": "bottom"
+        "top":  "top",
+        "bottom": "bottom"
       }
     }
   ],

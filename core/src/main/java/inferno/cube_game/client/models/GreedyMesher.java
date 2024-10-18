@@ -1,5 +1,6 @@
 package inferno.cube_game.client.models;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -31,9 +32,9 @@ public class GreedyMesher {
             return modelCache.get(chunkKey); // Return cached model
         }
 
-        modelBuilder.begin();
-
         int chunkSize = Chunk.CHUNK_SIZE;
+
+        modelBuilder.begin();
 
         IntStream.range(0, chunkSize * chunkSize * chunkSize).forEach(index -> {
             int blockPositionZ = index % chunkSize;
@@ -41,7 +42,7 @@ public class GreedyMesher {
             int blockPositionX = index / (chunkSize * chunkSize);
 
             // Block-level culling: skip if the block is completely surrounded by solid blocks
-            //if (ClientChunkHelper.canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) return; // Skip this block
+            if (ClientChunkHelper.canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) return; // Skip this block
 
             Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
 
@@ -87,13 +88,16 @@ public class GreedyMesher {
         float facePositionZ = element.from.z + blockPositionZ;
 
         // Create the meshPartName for this face
-        String meshPartName = block.getDomain().concat("_").concat(block.getRegistryName()).concat("_face_of_block_").concat(face);
+        String meshPartName = block.getDomain().concat("_").concat(block.getRegistryName()).concat("_").concat(face);
 
         // Get the material from the face texture
         MeshPartBuilder builder = faceMeshPartBuilderCache.computeIfAbsent(meshPartName, key -> {
             Material material = materialCache.computeIfAbsent(texture, tKey ->
-                new Material(TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(tKey)))
-            );
+                new Material(meshPartName,TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(tKey)))
+            ).copy();
+
+            Gdx.app.log("greedymesher", meshPartName.concat(" ").concat(face).concat(" ").concat(texture));
+
             return modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates, material);
         });
@@ -101,25 +105,23 @@ public class GreedyMesher {
         //if (!Objects.equals(material.id, texture)) return;
 
         // Refactor using a switch statement to handle the different faces
-        switch (face) {
-            case "up" -> {
-                makeUpFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-            }
-            case "down" -> {
-                makeDownFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-            }
-            case "north" -> {
-                makeNorthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-            }
-            case "south" -> {
-                makeSouthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-            }
-            case "west" -> {
-                makeWestFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-            }
-            case "east" -> {
-                makeEastFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-            }
+        if (face.equals("top")) {
+            makeTopFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+        }
+        if (face.equals("bottom")) {
+            makeBottomFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+        }
+        if (face.equals("north")) {
+            makeNorthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+        }
+        if (face.equals("south")) {
+            makeSouthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+        }
+        if (face.equals("west")) {
+            makeWestFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+        }
+        if (face.equals("east")) {
+            makeEastFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
         }
     }
 
@@ -164,7 +166,7 @@ public class GreedyMesher {
         );
     }
 
-    private void makeDownFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+    private void makeBottomFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
         modelBuilder.rect(
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Top-left
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Top-right
@@ -174,7 +176,7 @@ public class GreedyMesher {
         );
     }
 
-    private void makeUpFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+    private void makeTopFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
         modelBuilder.rect(
             new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-left
             new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-right
@@ -197,10 +199,10 @@ public class GreedyMesher {
     private boolean isFaceNotVisible(Chunk chunk, int x, int y, int z, String face) {
         Block neighbor;
         switch (face) {
-            case "up":
+            case "top":
                 neighbor = chunk.getBlock(x, y + 1, z);
                 break;
-            case "down":
+            case "bottom":
                 neighbor = chunk.getBlock(x, y - 1, z);
                 break;
             case "north":

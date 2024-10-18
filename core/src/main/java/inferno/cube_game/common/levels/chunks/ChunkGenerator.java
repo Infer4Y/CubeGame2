@@ -27,8 +27,8 @@ public class ChunkGenerator {
             double worldZ = (chunkZ * Chunk.CHUNK_SIZE + z) / 512.0;
 
             double mountainNoiseX = OpenSimplex2S.noise2(seed + 300, worldZ , worldY ) * 512;
-            double mountainNoiseZ = OpenSimplex2S.noise2(seed + 400, worldZ , worldX ) * 512;
-            double mountainNoiseY = OpenSimplex2S.noise2(seed + 200, worldY , worldX ) * 512;
+            double mountainNoiseZ = OpenSimplex2S.noise2(seed + 400, worldX , worldZ ) * 512;
+            double mountainNoiseY = OpenSimplex2S.noise2(seed + 200, worldX , worldY ) * 512;
 
             // Combine multiple layers of noise for varied terrain
 
