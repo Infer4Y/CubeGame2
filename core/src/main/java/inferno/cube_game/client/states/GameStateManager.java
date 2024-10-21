@@ -34,7 +34,8 @@ public class GameStateManager {
                 currentState.render();
         } catch (Exception e) {
             Gdx.app.log("GameStateManager",
-                currentState.toString().concat(" had an issue during rendering at : ").concat(Arrays.toString(e.getStackTrace())));
+                currentState.toString().concat(" had an issue during rendering at : "));
+            e.printStackTrace();
         }
 
         Main.fpsCounter.setText(Main.font, "FPS : " + Gdx.graphics.getFramesPerSecond() +

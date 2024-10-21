@@ -12,6 +12,11 @@ public class DynamicSky {
     private final Color skyColor;
     private float timeOfDay; // 0 to 1, where 0 is midnight and 1 is the next midnight
 
+    private Color morningColor = Color.valueOf("#87CEEB"); // Light blue
+    private Color middayColor = Color.valueOf("#00BFFF"); // Sky blue
+    private Color eveningColor = Color.valueOf("#A14500"); // Orange
+    private Color nightColor = Color.valueOf("#000000"); // Dark color
+
     public DynamicSky() {
         skyColor = new Color(0.1f, 0.1f, 0.2f, 1); // Dark color at night
         timeOfDay = 0; // Start at midnight
@@ -29,11 +34,6 @@ public class DynamicSky {
     }
 
     private void updateSkyColor() {
-        Color morningColor = Color.valueOf("#87CEEB"); // Light blue
-        Color middayColor = Color.valueOf("#00BFFF"); // Sky blue
-        Color eveningColor = Color.valueOf("#A14500"); // Orange
-        Color nightColor = Color.valueOf("#000000"); // Dark color
-
         if (timeOfDay < 0.25f) { // Morning
             skyColor.set(morningColor.lerp(middayColor, timeOfDay / 0.25f));
         } else if (timeOfDay < 0.5f) { // Midday

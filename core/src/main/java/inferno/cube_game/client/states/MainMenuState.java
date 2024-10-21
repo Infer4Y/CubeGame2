@@ -90,8 +90,6 @@ public class MainMenuState extends GameState {
 
     @Override
     public void update(float deltaTime) {
-        // Let the stage handle input events and updates
-        stage.act(deltaTime);
     }
 
     @Override

@@ -9,15 +9,12 @@ import inferno.cube_game.extras.utils.MapUtils;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 
 public class Chunk implements Serializable {
-    public static final int CHUNK_SIZE = 16;
+    public static final int CHUNK_SIZE = 32;
     private byte[] blockPaletteIndices; // Store indices instead of block IDs
     private ConcurrentHashMap<Byte, Block> palette;   // The palette maps indices to blocks
     private int chunkX, chunkY, chunkZ;
@@ -123,7 +120,7 @@ public class Chunk implements Serializable {
         return Arrays.equals(blockPaletteIndices, World.emptyChunk);
     }
 
-    public boolean hasAirInFirstLayer() {
-        return IntStream.range(0, CHUNK_SIZE).parallel().anyMatch(x -> IntStream.range(0, CHUNK_SIZE).parallel().anyMatch(z -> getBlock(x, 0, z).isAir()));
+    public boolean hasAirInAnyLayer() {
+        return IntStream.range(0, blockPaletteIndices.length).anyMatch(i -> blockPaletteIndices[i] == -1);
     }
 }

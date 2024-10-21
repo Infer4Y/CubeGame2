@@ -10,9 +10,6 @@ import com.badlogic.gdx.math.Vector3;
 import inferno.cube_game.common.levels.World;
 import inferno.cube_game.common.levels.chunks.Chunk;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.IntStream;
-
 public class WorldRenderer {
     private World world;
     private ChunkRenderer chunkRenderer;
@@ -141,19 +138,39 @@ public class WorldRenderer {
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
             if (chunk == null) continue;
             if (chunk.onlyAir()) continue;
-            //if (!isChunkBelowAir(chunkX, chunkY, chunkZ)) continue;
+            if (!isChunkNearAir(chunkX, chunkY, chunkZ)) continue;
 
-            chunkRenderer.render(batch, camera, chunk);
+            try {
+                chunkRenderer.render(batch, camera, chunk);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         batch.end();
     }
 
-    private boolean isChunkBelowAir(int chunkX, int chunkY, int chunkZ) {
-        Chunk chunk = world.getChunk(chunkX, chunkY + 1, chunkZ);
-        if (chunk == null) return true;
+    private boolean isChunkNearAir(int chunkX, int chunkY, int chunkZ) {
+        Chunk chunkUpper = world.getChunk(chunkX, chunkY + 1, chunkZ);
+        Chunk chunkLower = world.getChunk(chunkX, chunkY - 1, chunkZ);
+        Chunk chunkLeft = world.getChunk(chunkX + 1, chunkY , chunkZ);
+        Chunk chunkRight = world.getChunk(chunkX - 1, chunkY , chunkZ);
+        Chunk chunkBack = world.getChunk(chunkX , chunkY , chunkZ - 1);
+        Chunk chunkFront = world.getChunk(chunkX , chunkY , chunkZ + 1);
 
-        return chunk.hasAirInFirstLayer();
+        if (chunkUpper == null) return true;
+        if (chunkLower == null) return true;
+        if (chunkLeft == null) return true;
+        if (chunkRight == null) return true;
+        if (chunkBack == null) return true;
+        if (chunkFront == null) return true;
+
+        return chunkUpper.hasAirInAnyLayer() ||
+            chunkLower.hasAirInAnyLayer() ||
+            chunkBack.hasAirInAnyLayer() ||
+            chunkFront.hasAirInAnyLayer() ||
+            chunkLeft.hasAirInAnyLayer() ||
+            chunkRight.hasAirInAnyLayer();
     }
 
     public void dispose() {

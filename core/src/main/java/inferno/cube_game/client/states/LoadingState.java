@@ -123,6 +123,7 @@ public class LoadingState extends GameState {
             && currentItemLayout.width == 0) return;
         if (initializationStageLayout.height == 0
             && currentItemLayout.height == 0) return;
+        if (batch.isDrawing()) batch.end();
 
 
         batch.setProjectionMatrix(camera.combined);
@@ -172,7 +173,7 @@ public class LoadingState extends GameState {
         shapeRenderer.end();
 
         if ( currentStep == LoadStep.DONE ) {
-            GameStateManager.setState(new GameplayState(batch));
+            GameStateManager.setState(new MainMenuState(batch));
         }
     }
 

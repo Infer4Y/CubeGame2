@@ -24,6 +24,7 @@ public class GreedyMesher {
     private final ConcurrentHashMap<String, Model> modelCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, MeshPartBuilder> faceMeshPartBuilderCache = new ConcurrentHashMap<>();
 
+
     public Model generateMesh(Chunk chunk, ModelBuilder modelBuilder) {
         String chunkKey = new Vector3(chunk.getChunkX(), chunk.getChunkY(), chunk.getChunkZ()).toString();
 
@@ -64,11 +65,12 @@ public class GreedyMesher {
             });
         });
 
+
+        Model model = modelBuilder.end();
+
         if (!faceMeshPartBuilderCache.isEmpty()) {
             faceMeshPartBuilderCache.clear();
         }
-
-        Model model = modelBuilder.end();
         modelCache.put(chunkKey, model); // Cache the generated model
         return model;
     }
@@ -93,10 +95,10 @@ public class GreedyMesher {
         // Get the material from the face texture
         MeshPartBuilder builder = faceMeshPartBuilderCache.computeIfAbsent(meshPartName, key -> {
             Material material = materialCache.computeIfAbsent(texture, tKey ->
-                new Material(meshPartName,TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(tKey)))
-            ).copy();
+                new Material(texture,TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(tKey)))
+            );
 
-            Gdx.app.log("greedymesher", meshPartName.concat(" ").concat(face).concat(" ").concat(texture));
+            //Gdx.app.log("greedymesher", meshPartName.concat(" ").concat(face).concat(" ").concat(texture));
 
             return modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates, material);
@@ -126,8 +128,8 @@ public class GreedyMesher {
     }
 
 
-    private void makeEastFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
-        modelBuilder.rect(
+    private void makeEastFace(MeshPartBuilder meshPartBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+        meshPartBuilder.rect(
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // bottom-left
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // bottom-right
             new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ - faceDepth),  // top-right
@@ -136,8 +138,8 @@ public class GreedyMesher {
         );
     }
 
-    private void makeWestFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
-        modelBuilder.rect(
+    private void makeWestFace(MeshPartBuilder meshPartBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+        meshPartBuilder.rect(
             new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Bottom-right
             new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Bottom-left
             new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-left
@@ -146,8 +148,8 @@ public class GreedyMesher {
         );
     }
 
-    private void makeSouthFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
-        modelBuilder.rect(
+    private void makeSouthFace(MeshPartBuilder meshPartBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+        meshPartBuilder.rect(
             new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Bottom-left
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Bottom-right
             new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-right
@@ -156,8 +158,8 @@ public class GreedyMesher {
         );
     }
 
-    private void makeNorthFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
-        modelBuilder.rect(
+    private void makeNorthFace(MeshPartBuilder meshPartBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+        meshPartBuilder.rect(
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Bottom-right
             new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Bottom-left
             new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ - faceDepth),  // Top-left
@@ -166,8 +168,8 @@ public class GreedyMesher {
         );
     }
 
-    private void makeBottomFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
-        modelBuilder.rect(
+    private void makeBottomFace(MeshPartBuilder meshPartBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+        meshPartBuilder.rect(
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ - faceDepth),  // Top-left
             new Vector3(facePositionX + faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Top-right
             new Vector3(facePositionX - faceWidth, facePositionY - faceHeight, facePositionZ + faceDepth),  // Bottom-right
@@ -176,8 +178,8 @@ public class GreedyMesher {
         );
     }
 
-    private void makeTopFace(MeshPartBuilder modelBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
-        modelBuilder.rect(
+    private void makeTopFace(MeshPartBuilder meshPartBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
+        meshPartBuilder.rect(
             new Vector3(facePositionX - faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-left
             new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ + faceDepth),  // Top-right
             new Vector3(facePositionX + faceWidth, facePositionY + faceHeight, facePositionZ - faceDepth),  // Bottom-right
