@@ -1,10 +1,13 @@
 package inferno.cube_game.client.models;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
@@ -47,7 +50,7 @@ public class GreedyMesher {
 
             Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
 
-            if (block.isAir() || !block.isSolid()) return; // Skip air or non-solid blocks
+            if (block.isAir()) return; // Skip air or non-solid blocks
 
             BlockModel blockModel = Main.blockModelOven.createOrGetBlockModel(block);
 
@@ -95,35 +98,36 @@ public class GreedyMesher {
         // Get the material from the face texture
         MeshPartBuilder builder = faceMeshPartBuilderCache.computeIfAbsent(meshPartName, key -> {
             Material material = materialCache.computeIfAbsent(texture, tKey ->
-                new Material(texture,TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(tKey)))
+                new Material(texture,
+                    TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(tKey)),
+                    new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA))
             );
 
             //Gdx.app.log("greedymesher", meshPartName.concat(" ").concat(face).concat(" ").concat(texture));
 
             return modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
-                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates, material);
+                VertexAttributes.Usage.Position |
+                    VertexAttributes.Usage.Normal |
+                    VertexAttributes.Usage.TextureCoordinates,
+                material);
         });
 
         //if (!Objects.equals(material.id, texture)) return;
 
         // Refactor using a switch statement to handle the different faces
-        if (face.equals("top")) {
-            makeTopFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-        }
-        if (face.equals("bottom")) {
-            makeBottomFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-        }
-        if (face.equals("north")) {
-            makeNorthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-        }
-        if (face.equals("south")) {
-            makeSouthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-        }
-        if (face.equals("west")) {
-            makeWestFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-        }
-        if (face.equals("east")) {
-            makeEastFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+        switch (face) {
+            case "top" ->
+                makeTopFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+            case "bottom" ->
+                makeBottomFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+            case "north" ->
+                makeNorthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+            case "south" ->
+                makeSouthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+            case "west" ->
+                makeWestFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+            case "east" ->
+                makeEastFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
         }
     }
 
@@ -222,7 +226,7 @@ public class GreedyMesher {
             default:
                 return true; // Unknown face
         }
-        return !neighbor.isAir(); // Render the face if the neighboring block is air
+        return !neighbor.isAir() || !neighbor.isTransparent(); // Render the face if the neighboring block is air
     }
 
     public void dispose() {

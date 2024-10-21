@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
 
 public class Chunk implements Serializable {
-    public static final int CHUNK_SIZE = 32;
+    public static final int CHUNK_SIZE = 16;
     private byte[] blockPaletteIndices; // Store indices instead of block IDs
     private ConcurrentHashMap<Byte, Block> palette;   // The palette maps indices to blocks
     private int chunkX, chunkY, chunkZ;
@@ -40,28 +40,22 @@ public class Chunk implements Serializable {
     }
 
     private void generateTerrain(int[] heightMap) {
-        IntStream.range(0, CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE).parallel().forEach(index -> {
-            int z = index % Chunk.CHUNK_SIZE;
-            int y = (index / Chunk.CHUNK_SIZE) % Chunk.CHUNK_SIZE;
-            int x = index / (Chunk.CHUNK_SIZE * CHUNK_SIZE);
+        IntStream.range(0, CHUNK_SIZE).forEach(x -> {
+            IntStream.range(0, CHUNK_SIZE).forEach(z -> {
+                int height = heightMap[x*CHUNK_SIZE + z];
+                int chunkYOffset = (chunkY * CHUNK_SIZE);
 
-            int height = getHeightAtBlockPosition(x, y, z, heightMap); // Get the height from the precomputed map
-
-            if (chunkY * CHUNK_SIZE + y < height) {
-                setBlock(x, y, z, BlockRegistry.GRASS_BLOCK);
-            } else if (chunkY * CHUNK_SIZE + y - 5 < height  ) {
-                setBlock(x,y,z, BlockRegistry.STONE_BLOCK);
-            } else if (chunkY * CHUNK_SIZE + y - 12 < height  ) {
-                setBlock(x, y, z, BlockRegistry.DIRT_BLOCK);
-            }
+                IntStream.range(0, CHUNK_SIZE).forEach(y -> {
+                    if ( y + chunkYOffset == height) {
+                        setBlock(x, y, z, BlockRegistry.GLASS_BLOCK);
+                    } else if (y+ chunkYOffset <= height-1 && y+ chunkYOffset >= height-4) {
+                        setBlock(x, y, z, BlockRegistry.DIRT_BLOCK);
+                    } else if (y+ chunkYOffset <= height-4) {
+                        setBlock(x, y, z, BlockRegistry.STONE_BLOCK);
+                    }
+                });
+            });
         });
-    }
-
-    private int getHeightAtBlockPosition(int x, int y, int z, int[] oneDimensionalHeightMap) {
-        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
-            return 0;
-        }
-        return oneDimensionalHeightMap[x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z];
     }
 
     public Block getBlock(int x, int y, int z) {
@@ -120,7 +114,9 @@ public class Chunk implements Serializable {
         return Arrays.equals(blockPaletteIndices, World.emptyChunk);
     }
 
-    public boolean hasAirInAnyLayer() {
-        return IntStream.range(0, blockPaletteIndices.length).anyMatch(i -> blockPaletteIndices[i] == -1);
+    public boolean hasNoAirInAnyLayer() {
+        return IntStream.range(0, blockPaletteIndices.length).noneMatch(i -> blockPaletteIndices[i] == -1);
     }
+
+
 }

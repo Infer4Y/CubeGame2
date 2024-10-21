@@ -1,0 +1,27 @@
+{
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north":  "texture0",
+        "south":  "texture0",
+        "east":  "texture0",
+        "west": "texture0",
+        "top":  "texture0",
+        "bottom": "texture0"
+      }
+    }
+  ],
+  "textures": {
+    "texture0": "cube_game:blocks/glass.png"
+  }
+}

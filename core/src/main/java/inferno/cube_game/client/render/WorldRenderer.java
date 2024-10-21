@@ -138,7 +138,7 @@ public class WorldRenderer {
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
             if (chunk == null) continue;
             if (chunk.onlyAir()) continue;
-            if (!isChunkNearAir(chunkX, chunkY, chunkZ)) continue;
+            if (chunk.hasNoAirInAnyLayer()) continue;
 
             try {
                 chunkRenderer.render(batch, camera, chunk);
@@ -150,28 +150,6 @@ public class WorldRenderer {
         batch.end();
     }
 
-    private boolean isChunkNearAir(int chunkX, int chunkY, int chunkZ) {
-        Chunk chunkUpper = world.getChunk(chunkX, chunkY + 1, chunkZ);
-        Chunk chunkLower = world.getChunk(chunkX, chunkY - 1, chunkZ);
-        Chunk chunkLeft = world.getChunk(chunkX + 1, chunkY , chunkZ);
-        Chunk chunkRight = world.getChunk(chunkX - 1, chunkY , chunkZ);
-        Chunk chunkBack = world.getChunk(chunkX , chunkY , chunkZ - 1);
-        Chunk chunkFront = world.getChunk(chunkX , chunkY , chunkZ + 1);
-
-        if (chunkUpper == null) return true;
-        if (chunkLower == null) return true;
-        if (chunkLeft == null) return true;
-        if (chunkRight == null) return true;
-        if (chunkBack == null) return true;
-        if (chunkFront == null) return true;
-
-        return chunkUpper.hasAirInAnyLayer() ||
-            chunkLower.hasAirInAnyLayer() ||
-            chunkBack.hasAirInAnyLayer() ||
-            chunkFront.hasAirInAnyLayer() ||
-            chunkLeft.hasAirInAnyLayer() ||
-            chunkRight.hasAirInAnyLayer();
-    }
 
     public void dispose() {
         batch.dispose();

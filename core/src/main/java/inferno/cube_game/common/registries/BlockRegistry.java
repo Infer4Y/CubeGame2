@@ -18,6 +18,9 @@ public class BlockRegistry {
     public static Block GRASS_BLOCK;
     public static Block STONE_BLOCK;
     public static Block BRICK_BLOCK;
+    public static Block COBBLESTONE_BLOCK;
+    public static Block GLASS_BLOCK;
+    public static Block METAL_BLOCK;
 
     public static void register(Block block) {
         BLOCKS.put(block.getRegistryName(), block);
@@ -89,6 +92,35 @@ public class BlockRegistry {
             .setHardness(1.2f)
             .setType(BlockType.GRASS)
             .build());
+
+        register(COBBLESTONE_BLOCK = new Block.Builder()
+            .setRegistryName("cobblestone_block")
+            .setUnlocalizedName("tile.cobblestone")
+            .setSolid(true)
+            .setBreakable(true)
+            .setHardness(1.8f)
+            .setType(BlockType.STONE)
+            .build());
+
+        register(METAL_BLOCK = new Block.Builder()
+            .setRegistryName("metal_block")
+            .setUnlocalizedName("tile.metal")
+            .setSolid(true)
+            .setBreakable(true)
+            .setHardness(2.4f)
+            .setType(BlockType.METAL)
+            .build());
+
+        register(GLASS_BLOCK = new Block.Builder()
+            .setRegistryName("glass_block")
+            .setUnlocalizedName("tile.glass")
+            .setSolid(true)
+            .setTransparent(true)
+            .setBreakable(true)
+            .setHardness(1.8f)
+            .setType(BlockType.GLASS)
+            .build());
+
 
 
         // Add more default blocks as needed...
