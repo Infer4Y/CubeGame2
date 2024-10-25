@@ -3,6 +3,8 @@ package inferno.cube_game.common.blocks;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 
+import java.util.Objects;
+
 public class Block {
     private String domain; // The namespace or domain of the block
     private String registryName; // The registry name for the block
@@ -121,5 +123,10 @@ public class Block {
         public Block build() {
             return new Block(this);
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(domain, registryName, unlocalizedName);
     }
 }

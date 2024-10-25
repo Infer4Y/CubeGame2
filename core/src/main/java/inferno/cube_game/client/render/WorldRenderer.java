@@ -4,37 +4,40 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Environment;
+import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
+import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
+import inferno.cube_game.client.models.GreedyMesher;
 import inferno.cube_game.common.levels.World;
 import inferno.cube_game.common.levels.chunks.Chunk;
 
 public class WorldRenderer {
     private World world;
-    private ChunkRenderer chunkRenderer;
     private ModelBatch batch;
-    private Vector3 velocity = new Vector3(); // Player velocity
-    private final Vector3 gravity = new Vector3(0, -9.8f, 0); // Gravity constant
-    private float jumpForce = 15f; // Jump strength
-    private boolean isGrounded = false; // Check if player is on the ground
     private float cameraYaw = 0f; // Yaw rotation (left-right)
     private float cameraPitch = 0f; // Pitch rotation (up-down)
     private final float mouseSensitivity = 0.2f; // Mouse sensitivity
     private final float maxPitch = 89f; // Prevent camera from flipping
     private ShapeRenderer shapeRenderer = new ShapeRenderer();
     private Vector3 feetPosition; // Player's feet position
-    private final float playerHeight = 1.8f; // Height of the player (camera offset)
     private final float eyeOffset = 1.4f; // Camera height offset from feet (eye level)
     private float lastCull = 0; // Last time chunks were culled
+    private Model chunkModel;
+    private ModelInstance chunkInstance;
+    private GreedyMesher greedyMesher;
+    private Environment environment;
 
 
     public WorldRenderer(Camera camera, Environment environment) {
         this.world = new World(); // Generate a new world
-        this.chunkRenderer = new ChunkRenderer(camera, environment);
         this.batch = new ModelBatch();
         Gdx.input.setCursorCatched(true); // Capture the mouse
         feetPosition = camera.position.cpy(); // Set the feet position to the camera position
+        this.environment = environment;
+        this.greedyMesher = new GreedyMesher();
     }
 
     public void render(Camera camera, float deltaTime) {
@@ -44,8 +47,8 @@ public class WorldRenderer {
         renderChunks(camera);
 
         if (System.currentTimeMillis() - lastCull >= 60 * 10000) {
-            chunkRenderer.cullChunks(camera.position);
-            chunkRenderer.clearMaterialCache();
+            greedyMesher.cullChunks(camera.position);
+            greedyMesher.clearMaterialCache();
             lastCull = System.currentTimeMillis();
         }
     }
@@ -136,20 +139,62 @@ public class WorldRenderer {
             int chunkZ = (int) loadedChunk.z;
 
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
+
+
             if (chunk == null) continue;
             if (chunk.onlyAir()) continue;
-            if (chunk.hasNoAirInAnyLayer()) continue;
+            if (!checkSurrondingChunksForAir(world, chunk)) continue;
 
-            try {
-                chunkRenderer.render(batch, camera, chunk);
-            } catch (Exception e) {
-                e.printStackTrace();
+            if (chunkModel == null) {
+                ModelBuilder modelBuilder = new ModelBuilder();
+
+                chunkModel = greedyMesher.generateMesh(chunk, modelBuilder);
             }
+
+            chunkInstance = new ModelInstance(chunkModel);
+
+            chunkInstance.transform.setToTranslation(chunk.getChunkX() * Chunk.CHUNK_SIZE, chunk.getChunkY() * Chunk.CHUNK_SIZE, chunk.getChunkZ() * Chunk.CHUNK_SIZE);
+
+            batch.render(chunkInstance, environment);
+
+            chunkModel = null;
+            chunkInstance = null;
         }
 
         batch.end();
     }
 
+    private boolean checkSurrondingChunksForAir(World world, Chunk chunk) {
+        int chunkX = chunk.getChunkX();
+        int chunkY = chunk.getChunkY();
+        int chunkZ = chunk.getChunkZ();
+
+        Chunk top = world.getChunk(chunkX, chunkY+1, chunkZ);
+        if (top == null) return true;
+        if (!top.hasNoAirInAnyLayer()) return true;
+
+        Chunk bottom = world.getChunk(chunkX, chunkY-1, chunkZ);
+        if (bottom == null) return true;
+        if (!bottom.hasNoAirInAnyLayer()) return true;
+
+        Chunk left = world.getChunk(chunkX-1, chunkY, chunkZ);
+        if (left == null) return true;
+        if (!left.hasNoAirInAnyLayer()) return true;
+
+        Chunk right  = world.getChunk(chunkX+1, chunkY, chunkZ);
+        if (right == null) return true;
+        if (!right.hasNoAirInAnyLayer()) return true;
+
+        Chunk front  = world.getChunk(chunkX, chunkY, chunkZ+1);
+        if (front == null) return true;
+        if (!front.hasNoAirInAnyLayer()) return true;
+
+        Chunk back  = world.getChunk(chunkX, chunkY, chunkZ-1);
+        if (back == null) return true;
+        if (!back.hasNoAirInAnyLayer()) return true;
+
+        return false;
+    }
 
     public void dispose() {
         batch.dispose();

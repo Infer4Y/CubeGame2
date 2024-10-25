@@ -46,7 +46,7 @@ public class GreedyMesher {
             int blockPositionX = index / (chunkSize * chunkSize);
 
             // Block-level culling: skip if the block is completely surrounded by solid blocks
-            if (ClientChunkHelper.canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) return; // Skip this block
+            //if (canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) return; // Skip this block
 
             Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
 
@@ -227,6 +227,42 @@ public class GreedyMesher {
                 return true; // Unknown face
         }
         return !neighbor.isAir() || !neighbor.isTransparent(); // Render the face if the neighboring block is air
+    }
+
+    /**
+     * Check if a block can be culled (hidden) based on its neighbors
+     * @param chunk Chunk the block is in
+     * @param x X coordinate of the block
+     * @param y Y coordinate of the block
+     * @param z Z coordinate of the block
+     * @return True if the block can be culled, false otherwise
+     */
+    public static boolean canCullBlock(Chunk chunk, int x, int y, int z) {
+        Block topBlock = chunk.getBlock(x, y +1, z);
+        Block bottomBlock = chunk.getBlock(x, y - 1, z);
+        Block frontBlock = chunk.getBlock(x, y , z +1);
+        Block backBlock = chunk.getBlock(x, y , z -1);
+        Block leftBlock = chunk.getBlock(x - 1, y, z);
+        Block rightBlock = chunk.getBlock(x + 1, y, z);
+
+        boolean result;
+
+        result = !topBlock.isAir() &&
+            !bottomBlock.isAir() &&
+            !frontBlock.isAir() &&
+            !backBlock.isAir() &&
+            !leftBlock.isAir() &&
+            !rightBlock.isAir();
+
+        result = !topBlock.isTransparent() &&
+            !bottomBlock.isTransparent() &&
+            !frontBlock.isTransparent() &&
+            !backBlock.isTransparent() &&
+            !leftBlock.isTransparent() &&
+            !rightBlock.isTransparent() && result;
+
+        // Check all six neighbors
+        return result;
     }
 
     public void dispose() {

@@ -22,6 +22,9 @@ public class LoadingState extends GameState {
     private BitmapFont font;
     private ShapeRenderer shapeRenderer;
 
+    private boolean rendering = false;
+    private boolean updatingText = false;
+
     private enum LoadStep {
         PRE_INITIALIZATION,
         REGISTER_BLOCKS,
@@ -55,6 +58,8 @@ public class LoadingState extends GameState {
     @Override
     public void update(float deltaTime) {
         timer += deltaTime;
+
+        if (rendering) return;
 
         switch (currentStep) {
             case PRE_INITIALIZATION:
@@ -125,6 +130,7 @@ public class LoadingState extends GameState {
             && currentItemLayout.height == 0) return;
         if (batch.isDrawing()) batch.end();
 
+        rendering = true;
 
         batch.setProjectionMatrix(camera.combined);
         shapeRenderer.setProjectionMatrix(camera.combined);
@@ -171,6 +177,8 @@ public class LoadingState extends GameState {
         shapeRenderer.rect(x, y, barWidth * Math.min(loadingProgress, 1.0f), barHeight);
 
         shapeRenderer.end();
+
+        rendering = false;
 
         if ( currentStep == LoadStep.DONE ) {
             GameStateManager.setState(new MainMenuState(batch));

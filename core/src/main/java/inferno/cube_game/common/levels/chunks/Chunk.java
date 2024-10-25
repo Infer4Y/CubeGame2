@@ -9,6 +9,7 @@ import inferno.cube_game.extras.utils.MapUtils;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
@@ -16,7 +17,7 @@ import java.util.stream.IntStream;
 public class Chunk implements Serializable {
     public static final int CHUNK_SIZE = 16;
     private byte[] blockPaletteIndices; // Store indices instead of block IDs
-    private ConcurrentHashMap<Byte, Block> palette;   // The palette maps indices to blocks
+    private LinkedHashMap<Byte, Block> palette;   // The palette maps indices to blocks
     private int chunkX, chunkY, chunkZ;
     private BoundingBox boundingBox;
 
@@ -26,18 +27,12 @@ public class Chunk implements Serializable {
         this.chunkZ = chunkZ;
         this.blockPaletteIndices = new byte[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
         Arrays.fill(blockPaletteIndices, (byte) -1);
-        this.palette = new ConcurrentHashMap<>();
+        this.palette = new LinkedHashMap<>(256);
         this.palette.put((byte) -1, BlockRegistry.AIR_BLOCK);
 
         generateTerrain(heightMap);
-        setBoundingBox();
     }
 
-    private void setBoundingBox() {
-        Vector3 min = new Vector3(chunkX * CHUNK_SIZE, chunkY * CHUNK_SIZE, chunkZ * CHUNK_SIZE);
-        Vector3 max = new Vector3((chunkX + 1) * CHUNK_SIZE, (chunkY + 1) * CHUNK_SIZE, (chunkZ + 1) * CHUNK_SIZE);
-        boundingBox = new BoundingBox(min, max);
-    }
 
     private void generateTerrain(int[] heightMap) {
         IntStream.range(0, CHUNK_SIZE).forEach(x -> {
@@ -46,13 +41,19 @@ public class Chunk implements Serializable {
                 int chunkYOffset = (chunkY * CHUNK_SIZE);
 
                 IntStream.range(0, CHUNK_SIZE).forEach(y -> {
+                    Block block = BlockRegistry.AIR_BLOCK;
                     if ( y + chunkYOffset == height) {
-                        setBlock(x, y, z, BlockRegistry.GLASS_BLOCK);
+                        block = BlockRegistry.GRASS_BLOCK;
                     } else if (y+ chunkYOffset <= height-1 && y+ chunkYOffset >= height-4) {
-                        setBlock(x, y, z, BlockRegistry.DIRT_BLOCK);
+                        block = BlockRegistry.DIRT_BLOCK;
                     } else if (y+ chunkYOffset <= height-4) {
-                        setBlock(x, y, z, BlockRegistry.STONE_BLOCK);
+                        block = BlockRegistry.STONE_BLOCK;
                     }
+
+                    if (block.isAir()) return;
+
+                    byte paletteIndex = getOrAddToPalette(block); // Get palette index for the block
+                    blockPaletteIndices[x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z] = paletteIndex;
                 });
             });
         });
@@ -76,7 +77,7 @@ public class Chunk implements Serializable {
 
     private byte getOrAddToPalette(Block block) {
         // Search for the block in the palette
-        if (palette.contains(block)) {
+        if (palette.containsValue(block)) {
             Set<Byte> bytesInPallet = MapUtils.getKeysByValue(palette, block);
             if (!bytesInPallet.isEmpty()) return bytesInPallet.iterator().next();
         }
@@ -115,8 +116,10 @@ public class Chunk implements Serializable {
     }
 
     public boolean hasNoAirInAnyLayer() {
-        return IntStream.range(0, blockPaletteIndices.length).noneMatch(i -> blockPaletteIndices[i] == -1);
+        for (byte block : blockPaletteIndices) {
+            if(block == -1) return false;
+        }
+        return true;
     }
-
 
 }

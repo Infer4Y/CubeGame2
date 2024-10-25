@@ -49,6 +49,8 @@ public class BlockModelOven {
      * @return BlockModel object
      */
     public BlockModel createOrGetBlockModel(Block block) {
+        if (block.isAir()) return null;
+        
         String blockRegistryName = block.getRegistryName();
         if (modelCache.containsKey(blockRegistryName)) {
             return modelCache.get(blockRegistryName);

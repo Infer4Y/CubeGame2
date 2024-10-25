@@ -23,18 +23,21 @@ public class ChunkGenerator {
                 double worldX = (chunkX * Chunk.CHUNK_SIZE + x) / 32.0;
                 double worldZ = (chunkZ * Chunk.CHUNK_SIZE + z) / 32.0;
 
+                double worldHillX = worldX / 128.0;
+                double worldHillZ = worldZ / 128.0;
 
-                double worldHillX = worldX / 2.0;
-                double worldHillZ = worldZ / 2.0;
+                double worldMountainX = worldX / 192.0;
+                double worldMountainZ = worldZ / 192.0;
 
-                double worldDetailX = worldX / 32.0;
-                double worldDetailZ = worldZ / 32.0;
+                double worldDetailX = worldX / 4.0;
+                double worldDetailZ = worldZ / 4.0;
 
                 double noiseBase = OpenSimplex2S.noise2(seed, worldX, worldZ);
-                double hillNoise = OpenSimplex2S.noise2((long) (seed * noiseBase), worldHillX, worldHillZ) * 32;
-                double detailNoise = OpenSimplex2S.noise2((long) (seed * hillNoise), worldDetailX, worldDetailZ) * 4;
+                double hillNoise = OpenSimplex2S.noise2((long) (seed * noiseBase), worldHillX, worldHillZ) * 128;
+                double mountainNoise = OpenSimplex2S.noise2((long) (seed * noiseBase), worldMountainX, worldMountainZ) * 256;
+                double detailNoise = OpenSimplex2S.noise2((long) (seed * noiseBase), worldDetailX, worldDetailZ) * 4;
 
-                int height = (int) ((noiseBase + hillNoise + detailNoise) + 64);
+                int height = (int) (hillNoise + mountainNoise - detailNoise + 64);
                 setHeightAtCoordinate(x, z, height, oneDimensionalHeightMap);
                 //setHeightAtCoordinate(x, y, z, Math.max(0, height)); // Clamp height to non-negative values
             });
