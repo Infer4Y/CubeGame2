@@ -23,7 +23,7 @@ public class BlockRegistry {
     public static Block METAL_BLOCK;
 
     public static void register(Block block) {
-        BLOCKS.put(block.getRegistryName(), block);
+        BLOCKS.put(block.getDomain() + ":" + block.getRegistryName(), block);
         BLOCKS_BY_ID.put(nextBlockId, block);  // Register block by unique ID
         nextBlockId++;
         ItemRegistry.register(new ItemBlock(block));  // Register corresponding ItemBlock

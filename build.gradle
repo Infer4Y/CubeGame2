@@ -1,3 +1,5 @@
+import java.text.SimpleDateFormat
+
 buildscript {
   repositories {
     mavenCentral()
@@ -58,7 +60,7 @@ configure(subprojects) {
 
 subprojects {
   version = '$projectVersion'
-  ext.appName = 'CubeGame'
+  ext.appName = 'CubeGame Build ' + new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
   repositories {
     mavenCentral()
     maven { url 'https://s01.oss.sonatype.org' }

@@ -3,9 +3,10 @@ package inferno.cube_game.common.blocks;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class Block {
+public class Block implements Serializable {
     private String domain; // The namespace or domain of the block
     private String registryName; // The registry name for the block
     private String unlocalizedName; // The unlocalized name for the block
