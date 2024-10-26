@@ -38,6 +38,18 @@ jobs:
     - name: Build with Gradle Wrapper
       run: ./gradlew build
 
+    - name: Build Win64
+      run: ./gradlew lwjgl3:packageWinX64
+
+    - name: Build Mac M1
+      run: ./gradlew lwjgl3:packageMacM1
+
+    - name: Build Mac64
+      run: ./gradlew lwjgl3:packageMacX64
+
+    - name: Build LinuxX64
+      run: ./gradlew lwjgl3:packageLinuxX64
+
     # NOTE: The Gradle Wrapper is the default and recommended way to run Gradle (https://docs.gradle.org/current/userguide/gradle_wrapper.html).
     # If your project does not have the Gradle Wrapper configured, you can use the following configuration to run Gradle with a specified version.
     #
