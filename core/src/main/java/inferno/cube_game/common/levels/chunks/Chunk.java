@@ -12,7 +12,7 @@ public class Chunk implements Serializable {
     public static final int CHUNK_SIZE = 16;
     private byte[] blockPaletteIndices;
     private Block[] palette; // Array-based palette
-    private int paletteSize;
+    private short paletteSize;
     private int chunkX, chunkY, chunkZ;
 
     public Chunk(int chunkX, int chunkY, int chunkZ, int[] heightMap) {
@@ -51,6 +51,40 @@ public class Chunk implements Serializable {
                 });
             });
         });
+    }
+
+    public boolean isFaceNotVisible(int x, int y, int z, String face) {
+        Block neighbor = switch (face) {
+            case "top" -> getBlock(x, y + 1, z);
+            case "bottom" -> getBlock(x, y - 1, z);
+            case "north" -> getBlock(x, y, z - 1);
+            case "south" -> getBlock(x, y, z + 1);
+            case "west" -> getBlock(x - 1, y, z);
+            case "east" -> getBlock(x + 1, y, z);
+            default -> null;
+        };
+        return neighbor != null && (!neighbor.isAir());
+    }
+
+    public boolean canCullBlock(int x, int y, int z) {
+        Block topBlock = getBlock(x, y + 1, z);
+        Block bottomBlock = getBlock(x, y - 1, z);
+        Block frontBlock = getBlock(x, y , z + 1);
+        Block backBlock = getBlock(x, y , z - 1);
+        Block leftBlock = getBlock(x - 1, y, z);
+        Block rightBlock = getBlock(x + 1, y, z);
+
+        boolean result;
+
+        result = !topBlock.isAir() &&
+            !bottomBlock.isAir() &&
+            !frontBlock.isAir() &&
+            !backBlock.isAir() &&
+            !leftBlock.isAir() &&
+            !rightBlock.isAir();
+
+        // Check all six neighbors
+        return result;
     }
 
     public Block getBlock(int x, int y, int z) {

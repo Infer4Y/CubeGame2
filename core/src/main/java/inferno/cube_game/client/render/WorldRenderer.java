@@ -4,12 +4,16 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.*;
+import com.badlogic.gdx.graphics.g3d.utils.DefaultShaderProvider;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import inferno.cube_game.client.models.GreedyMesher;
+import inferno.cube_game.client.render.shader.WireframeShader;
 import inferno.cube_game.common.levels.World;
 import inferno.cube_game.common.levels.chunks.Chunk;
+
+import static com.badlogic.gdx.graphics.GL20.GL_FRONT_AND_BACK;
 
 
 public class WorldRenderer {
@@ -32,7 +36,13 @@ public class WorldRenderer {
 
     public WorldRenderer(Camera camera, Environment environment) {
         this.world = new World(); // Generate a new world
-        this.batch = new ModelBatch();
+        this.batch = new ModelBatch(new DefaultShaderProvider() {
+            @Override
+            protected Shader createShader(Renderable renderable) {
+                return new WireframeShader(renderable, config);
+            }
+        });
+            //new ModelBatch();
         Gdx.input.setCursorCatched(true); // Capture the mouse
         feetPosition = camera.position.cpy(); // Set the feet position to the camera position
         this.environment = environment;
@@ -121,13 +131,13 @@ public class WorldRenderer {
         int y = (int) (frustumPosition.y / Chunk.CHUNK_SIZE);
         int z = (int) (frustumPosition.z / Chunk.CHUNK_SIZE);
 
-        chunkModelCache.begin();
 
         // Load nearby chunks
         world.getChunkKeysToLoad(x, y, z).forEach(loadedChunk -> {
             int chunkX = (int) loadedChunk.x;
             int chunkY = (int) loadedChunk.y;
             int chunkZ = (int) loadedChunk.z;
+
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
 
             if (chunk == null) return;
@@ -139,13 +149,15 @@ public class WorldRenderer {
 
             chunkInstance = new ModelInstance(chunkModel);
             chunkInstance.transform.setToTranslation(chunk.getChunkX() * Chunk.CHUNK_SIZE, chunk.getChunkY() * Chunk.CHUNK_SIZE, chunk.getChunkZ() * Chunk.CHUNK_SIZE);
-            chunkModelCache.add(chunkInstance);
+            models.add(chunkInstance);
             chunkModel = null;
             chunkInstance = null;
         });
 
-        chunkModelCache.end();
 
+        chunkModelCache.begin();
+        chunkModelCache.add(models);
+        chunkModelCache.end();
 
         batch.begin(camera);
         batch.render(chunkModelCache, environment);

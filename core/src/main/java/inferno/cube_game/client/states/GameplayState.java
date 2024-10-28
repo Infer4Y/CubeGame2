@@ -32,13 +32,13 @@ public class GameplayState extends GameState {
     @Override
     public void create() {
         environment = new Environment();
-        environment.add(DIRECTIONAL_LIGHT);
         environment.set(
             new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f),
             new ColorAttribute(ColorAttribute.Fog, 0.0f, 0.0f, 0.0f, 1f),
             new ColorAttribute(ColorAttribute.Reflection, 0.8f, 0.8f, 0.8f, 1f),
             new ColorAttribute(ColorAttribute.Ambient, 0.8f, 0.8f, 0.8f, 1f)
         );
+        environment.add(DIRECTIONAL_LIGHT);
 
         camera = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 

@@ -42,17 +42,18 @@ public class GreedyMesher {
                 for (int blockPositionZ = 0; blockPositionZ < chunkSize; blockPositionZ++) {
                     Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
 
-                    if (block == null || block.isAir() || canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) continue;
+                    if (block == null || block.isAir() || chunk.canCullBlock(blockPositionX, blockPositionY, blockPositionZ)) continue;
 
                     BlockModel blockModel = Main.blockModelOven.createOrGetBlockModel(block);
 
                     if (blockModel == null || blockModel.textures.isEmpty() || blockModel.elements.isEmpty()) continue;
 
+                    modelBuilder.node().id = block.getDomain().concat(":").concat(block.getRegistryName());
                     for (Element element : blockModel.elements) {
                         for (Map.Entry<String, String> faceEntry : element.faces.entrySet()) {
                             String faceDirection = faceEntry.getKey();
 
-                            if (isFaceNotVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, faceDirection)) continue;
+                            if (chunk.isFaceNotVisible(blockPositionX, blockPositionY, blockPositionZ, faceDirection)) continue;
 
                             String textureKey = faceEntry.getValue();
                             makeMeshFace(modelBuilder, element, faceDirection, blockModel.textures.get(textureKey),
@@ -91,7 +92,8 @@ public class GreedyMesher {
             new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         ));
 
-        MeshPartBuilder builder = modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
+        MeshPartBuilder builder = modelBuilder.part(block.getDomain().concat(":").concat(block.getRegistryName()),
+            GL20.GL_TRIANGLES,
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
             material);
             //meshCache.computeIfAbsent( meshPartName, key -> modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
@@ -106,55 +108,6 @@ public class GreedyMesher {
             case "west" -> makeWestFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
             case "east" -> makeEastFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
         }
-    }
-
-    private boolean isFaceNotVisible(Chunk chunk, int x, int y, int z, String face) {
-        Block neighbor = switch (face) {
-            case "top" -> chunk.getBlock(x, y + 1, z);
-            case "bottom" -> chunk.getBlock(x, y - 1, z);
-            case "north" -> chunk.getBlock(x, y, z - 1);
-            case "south" -> chunk.getBlock(x, y, z + 1);
-            case "west" -> chunk.getBlock(x - 1, y, z);
-            case "east" -> chunk.getBlock(x + 1, y, z);
-            default -> null;
-        };
-        return neighbor != null && (!neighbor.isAir());
-    }
-
-    /**
-     * Check if a block can be culled (hidden) based on its neighbors
-     * @param chunk Chunk the block is in
-     * @param x X coordinate of the block
-     * @param y Y coordinate of the block
-     * @param z Z coordinate of the block
-     * @return True if the block can be culled, false otherwise
-     */
-    public static boolean canCullBlock(Chunk chunk, int x, int y, int z) {
-        Block topBlock = chunk.getBlock(x, y +1, z);
-        Block bottomBlock = chunk.getBlock(x, y - 1, z);
-        Block frontBlock = chunk.getBlock(x, y , z +1);
-        Block backBlock = chunk.getBlock(x, y , z -1);
-        Block leftBlock = chunk.getBlock(x - 1, y, z);
-        Block rightBlock = chunk.getBlock(x + 1, y, z);
-
-        boolean result;
-
-        result = !topBlock.isAir() &&
-            !bottomBlock.isAir() &&
-            !frontBlock.isAir() &&
-            !backBlock.isAir() &&
-            !leftBlock.isAir() &&
-            !rightBlock.isAir();
-
-        result = !topBlock.isTransparent() &&
-            !bottomBlock.isTransparent() &&
-            !frontBlock.isTransparent() &&
-            !backBlock.isTransparent() &&
-            !leftBlock.isTransparent() &&
-            !rightBlock.isTransparent() && result;
-
-        // Check all six neighbors
-        return result;
     }
 
     private void makeEastFace(MeshPartBuilder meshPartBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
@@ -221,7 +174,6 @@ public class GreedyMesher {
         modelCache.values().forEach(Model::dispose);
         modelCache.keySet().clear();
     }
-
 
     public void clearMaterialCache() {
         materialCache.clear();

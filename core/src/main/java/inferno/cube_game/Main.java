@@ -38,14 +38,12 @@ public class Main extends ApplicationAdapter {
 
         updateThread = new Thread(() -> {
             while (GameStateManager.running) {
-                if (System.currentTimeMillis() - lastGameStateManagerUpdate.get() >= 5) {
-                    GameStateManager.update(5f/1000f);
+                if (System.currentTimeMillis() - lastGameStateManagerUpdate.get() >= 50) {
+                    GameStateManager.update(5f/100f);
                     lastGameStateManagerUpdate.set(System.currentTimeMillis());
                 }
             }
-        });
-
-
+        }, "UpdateThread");
     }
 
     @Override
@@ -55,7 +53,7 @@ public class Main extends ApplicationAdapter {
         //System.out.println(Gdx.graphics.getFramesPerSecond());
         GameStateManager.render();
 
-        logger.log();
+        //logger.log();
 
         if (!updateThread.isAlive()) {
             updateThread.start();
