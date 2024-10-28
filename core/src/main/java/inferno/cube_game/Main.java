@@ -38,8 +38,8 @@ public class Main extends ApplicationAdapter {
 
         updateThread = new Thread(() -> {
             while (GameStateManager.running) {
-                if (System.currentTimeMillis() - lastGameStateManagerUpdate.get() >= 10) {
-                    GameStateManager.update(0.01f);
+                if (System.currentTimeMillis() - lastGameStateManagerUpdate.get() >= 5) {
+                    GameStateManager.update(5f/1000f);
                     lastGameStateManagerUpdate.set(System.currentTimeMillis());
                 }
             }

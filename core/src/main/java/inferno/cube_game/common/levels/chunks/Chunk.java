@@ -1,40 +1,31 @@
 package inferno.cube_game.common.levels.chunks;
 
-import com.badlogic.gdx.math.collision.BoundingBox;
 import inferno.cube_game.common.blocks.Block;
+import inferno.cube_game.common.levels.World;
 import inferno.cube_game.common.registries.BlockRegistry;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.stream.IntStream;
 
 public class Chunk implements Serializable {
     public static final int CHUNK_SIZE = 16;
-    private byte[] blockPaletteIndices; // Store indices instead of block IDs
-    LinkedHashMap<Byte, Block> palette; // The palette maps indices to blocks
+    private byte[] blockPaletteIndices;
+    private Block[] palette; // Array-based palette
+    private int paletteSize;
     private int chunkX, chunkY, chunkZ;
 
-    // Primary Constructor - Generates new terrain
     public Chunk(int chunkX, int chunkY, int chunkZ, int[] heightMap) {
         this.chunkX = chunkX;
         this.chunkY = chunkY;
         this.chunkZ = chunkZ;
         this.blockPaletteIndices = new byte[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
-        Arrays.fill(blockPaletteIndices, (byte) -1);
-        this.palette = new LinkedHashMap<>(256);
-        this.palette.put((byte) -1, BlockRegistry.AIR_BLOCK);
+        Arrays.fill(blockPaletteIndices, (byte) 0);
+        this.palette = new Block[256];
+        this.palette[0] = BlockRegistry.AIR_BLOCK; // Assign index 0 to AIR_BLOCK
+        this.paletteSize = 1;
 
         generateTerrain(heightMap);
-    }
-
-    // Secondary Constructor - Loads from saved data
-    public Chunk(int chunkX, int chunkY, int chunkZ, LinkedHashMap<Byte, Block> palette, byte[] blockPaletteIndices) {
-        this.chunkX = chunkX;
-        this.chunkY = chunkY;
-        this.chunkZ = chunkZ;
-        this.palette = palette;
-        this.blockPaletteIndices = blockPaletteIndices;
     }
 
     private void generateTerrain(int[] heightMap) {
@@ -47,7 +38,7 @@ public class Chunk implements Serializable {
                     Block block = BlockRegistry.AIR_BLOCK;
                     if (y + chunkYOffset == height) {
                         block = BlockRegistry.GRASS_BLOCK;
-                    } else if (y + chunkYOffset < height - 1 && y + chunkYOffset > height - 4) {
+                    } else if (y + chunkYOffset <= height - 1 && y + chunkYOffset > height - 4) {
                         block = BlockRegistry.DIRT_BLOCK;
                     } else if (y + chunkYOffset <= height - 4) {
                         block = BlockRegistry.STONE_BLOCK;
@@ -67,7 +58,7 @@ public class Chunk implements Serializable {
             return BlockRegistry.AIR_BLOCK;
         }
         byte paletteIndex = blockPaletteIndices[x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z];
-        return palette.get(paletteIndex); // Get block from palette
+        return palette[paletteIndex];
     }
 
     public void setBlock(int x, int y, int z, Block block) {
@@ -79,21 +70,18 @@ public class Chunk implements Serializable {
     }
 
     private byte getOrAddToPalette(Block block) {
-        if (palette.containsValue(block)) {
-            return palette.entrySet().stream()
-                .filter(entry -> entry.getValue().equals(block))
-                .map(entry -> entry.getKey())
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Block not found in palette!"));
+        for (byte i = 0; i < paletteSize; i++) {
+            if (palette[i] == block) {
+                return i;
+            }
         }
 
-        byte newPaletteIndex = (byte) palette.size();
-        if (newPaletteIndex >= 256) {
-            throw new RuntimeException("Palette overflow in chunk!"); // Palette can store max 256 blocks
+        if (paletteSize >= 256) {
+            throw new RuntimeException("Palette overflow in chunk!");
         }
 
-        palette.put(newPaletteIndex, block);
-        return newPaletteIndex;
+        palette[paletteSize] = block;
+        return (byte) paletteSize++;
     }
 
     public int getChunkX() {
@@ -109,12 +97,12 @@ public class Chunk implements Serializable {
     }
 
     public boolean onlyAir() {
-        return Arrays.equals(blockPaletteIndices, new byte[blockPaletteIndices.length]);
+        return Arrays.equals(blockPaletteIndices, World.emptyChunk);
     }
 
     public boolean hasNoAirInAnyLayer() {
         for (byte block : blockPaletteIndices) {
-            if (block == -1) return false;
+            if (block == 0) return false;
         }
         return true;
     }
@@ -123,7 +111,7 @@ public class Chunk implements Serializable {
         return blockPaletteIndices.clone();
     }
 
-    public LinkedHashMap<Byte, Block> getPalette() {
+    public Block[] getPalette() {
         return palette;
     }
 }

@@ -2,17 +2,15 @@ package inferno.cube_game.client.render;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Camera;
-import com.badlogic.gdx.graphics.g3d.Environment;
-import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.ModelBatch;
-import com.badlogic.gdx.graphics.g3d.ModelInstance;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g3d.*;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.Array;
 import inferno.cube_game.client.models.GreedyMesher;
 import inferno.cube_game.common.levels.World;
 import inferno.cube_game.common.levels.chunks.Chunk;
+
 
 public class WorldRenderer {
     private World world;
@@ -30,6 +28,7 @@ public class WorldRenderer {
     private GreedyMesher greedyMesher;
     private Environment environment;
 
+    ModelCache chunkModelCache;
 
     public WorldRenderer(Camera camera, Environment environment) {
         this.world = new World(); // Generate a new world
@@ -38,6 +37,7 @@ public class WorldRenderer {
         feetPosition = camera.position.cpy(); // Set the feet position to the camera position
         this.environment = environment;
         this.greedyMesher = new GreedyMesher();
+        chunkModelCache = new ModelCache();
     }
 
     public void render(Camera camera, float deltaTime) {
@@ -110,57 +110,45 @@ public class WorldRenderer {
         camera.position.set(feetPosition.x, feetPosition.y + eyeOffset, feetPosition.z);
         camera.update();
 
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            Gdx.input.setCursorCatched(!Gdx.input.isCursorCatched()); // Unlock and show cursor
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.F11)){
-            if (Gdx.graphics.isFullscreen()){
-                Gdx.graphics.setWindowedMode(1280, 720);
-            } else {
-                Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
-            }
-        }
     }
 
     private void renderChunks(Camera camera) {
         Vector3 frustumPosition = feetPosition;
 
+        Array<ModelInstance> models = new Array<>();
+
         int x = (int) (frustumPosition.x / Chunk.CHUNK_SIZE);
         int y = (int) (frustumPosition.y / Chunk.CHUNK_SIZE);
         int z = (int) (frustumPosition.z / Chunk.CHUNK_SIZE);
 
-        batch.begin(camera);
+        chunkModelCache.begin();
+
         // Load nearby chunks
-        for (Vector3 loadedChunk : world.getChunkKeysToLoad(x, y, z)) {
+        world.getChunkKeysToLoad(x, y, z).forEach(loadedChunk -> {
             int chunkX = (int) loadedChunk.x;
             int chunkY = (int) loadedChunk.y;
             int chunkZ = (int) loadedChunk.z;
-
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
 
+            if (chunk == null) return;
+            if (chunk.onlyAir()) return;
+            if (!checkSurrondingChunksForAir(world, chunk)) return;
 
-            if (chunk == null) continue;
-            if (chunk.onlyAir()) continue;
-            if (!checkSurrondingChunksForAir(world, chunk)) continue;
-
-            if (chunkModel == null) {
-                ModelBuilder modelBuilder = new ModelBuilder();
-
-                chunkModel = greedyMesher.generateMesh(chunk, modelBuilder);
-            }
+            chunkModel = greedyMesher.generateMesh(chunk);
+            if (chunkModel == null) return;
 
             chunkInstance = new ModelInstance(chunkModel);
-
             chunkInstance.transform.setToTranslation(chunk.getChunkX() * Chunk.CHUNK_SIZE, chunk.getChunkY() * Chunk.CHUNK_SIZE, chunk.getChunkZ() * Chunk.CHUNK_SIZE);
-
-            batch.render(chunkInstance, environment);
-
+            chunkModelCache.add(chunkInstance);
             chunkModel = null;
             chunkInstance = null;
-        }
+        });
 
+        chunkModelCache.end();
+
+
+        batch.begin(camera);
+        batch.render(chunkModelCache, environment);
         batch.end();
     }
 
@@ -191,14 +179,13 @@ public class WorldRenderer {
 
         Chunk back  = world.getChunk(chunkX, chunkY, chunkZ-1);
         if (back == null) return true;
-        if (!back.hasNoAirInAnyLayer()) return true;
-
-        return false;
+        return !back.hasNoAirInAnyLayer();
     }
 
     public void dispose() {
         batch.dispose();
         shapeRenderer.dispose();
+        chunkModelCache.dispose();
         // Dispose other resources if necessary
         world.shutdown();
     }

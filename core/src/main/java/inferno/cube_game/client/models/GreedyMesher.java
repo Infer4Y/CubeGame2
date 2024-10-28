@@ -1,13 +1,9 @@
 package inferno.cube_game.client.models;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes;
-import com.badlogic.gdx.graphics.g3d.Material;
-import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.*;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
@@ -20,117 +16,146 @@ import inferno.cube_game.common.levels.chunks.Chunk;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.IntStream;
 
 public class GreedyMesher {
     private final ConcurrentHashMap<String, Material> materialCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Model> modelCache = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, MeshPartBuilder> faceMeshPartBuilderCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, MeshPartBuilder> meshCache = new ConcurrentHashMap<>();
 
 
-    public Model generateMesh(Chunk chunk, ModelBuilder modelBuilder) {
+    public Model generateMesh(Chunk chunk) {
+        final ModelBuilder modelBuilder = new ModelBuilder();
         String chunkKey = new Vector3(chunk.getChunkX(), chunk.getChunkY(), chunk.getChunkZ()).toString();
 
-        // Check if the model is already cached
-        if (modelCache.get(chunkKey) != null) {
-            return modelCache.get(chunkKey); // Return cached model
+        // Return cached model if it exists
+        Model cachedModel = modelCache.get(chunkKey);
+        if (cachedModel != null) {
+            return cachedModel;
         }
 
         int chunkSize = Chunk.CHUNK_SIZE;
-
         modelBuilder.begin();
+        boolean hasVisibleFaces = false;
 
-        IntStream.range(0, chunkSize * chunkSize * chunkSize).forEach(index -> {
-            int blockPositionZ = index % chunkSize;
-            int blockPositionY = (index / chunkSize) % chunkSize;
-            int blockPositionX = index / (chunkSize * chunkSize);
+        for (int blockPositionX = 0; blockPositionX < chunkSize; blockPositionX++) {
+            for (int blockPositionY = 0; blockPositionY < chunkSize; blockPositionY++) {
+                for (int blockPositionZ = 0; blockPositionZ < chunkSize; blockPositionZ++) {
+                    Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
 
-            // Block-level culling: skip if the block is completely surrounded by solid blocks
-            //if (canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) return; // Skip this block
+                    if (block == null || block.isAir() || canCullBlock(chunk, blockPositionX, blockPositionY, blockPositionZ)) continue;
 
-            Block block = chunk.getBlock(blockPositionX, blockPositionY, blockPositionZ);
+                    BlockModel blockModel = Main.blockModelOven.createOrGetBlockModel(block);
 
-            if (block.isAir()) return; // Skip air or non-solid blocks
+                    if (blockModel == null || blockModel.textures.isEmpty() || blockModel.elements.isEmpty()) continue;
 
-            BlockModel blockModel = Main.blockModelOven.createOrGetBlockModel(block);
+                    for (Element element : blockModel.elements) {
+                        for (Map.Entry<String, String> faceEntry : element.faces.entrySet()) {
+                            String faceDirection = faceEntry.getKey();
 
-            if (blockModel == null) return;
-            if (blockModel.textures.isEmpty()) return;
-            if (blockModel.elements.isEmpty()) return;
+                            if (isFaceNotVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, faceDirection)) continue;
 
-            blockModel.elements.forEach(element -> {
-                element.faces.forEach((faceDirection, textureKey) -> {
-                    if (isFaceNotVisible(chunk, blockPositionX, blockPositionY, blockPositionZ, faceDirection)) return;
-
-                    makeMeshFace(modelBuilder, element, faceDirection, blockModel.textures.get(textureKey),
-                        blockPositionX, blockPositionY, blockPositionZ, faceMeshPartBuilderCache, block);
-                });
-            });
-        });
+                            String textureKey = faceEntry.getValue();
+                            makeMeshFace(modelBuilder, element, faceDirection, blockModel.textures.get(textureKey),
+                                blockPositionX, blockPositionY, blockPositionZ, block);
+                            hasVisibleFaces = true;
+                        }
+                    }
+                }
+            }
+        }
 
 
         Model model = modelBuilder.end();
 
-        if (!faceMeshPartBuilderCache.isEmpty()) {
-            faceMeshPartBuilderCache.clear();
-        }
-        modelCache.put(chunkKey, model); // Cache the generated model
-        return model;
+        clearMaterialCache();
+        meshCache.clear();
+
+        if (!hasVisibleFaces) return null;
+
+        return modelCache.put(chunkKey, model);
     }
 
     private void makeMeshFace(ModelBuilder modelBuilder, Element element, String face, String texture,
-                              int blockPositionX, int blockPositionY, int blockPositionZ,
-                              Map<String, MeshPartBuilder> faceMeshPartBuilderCache, Block block) {
+                              int blockPositionX, int blockPositionY, int blockPositionZ, Block block) {
+        float faceWidth = (element.to.x - element.from.x) / 2;
+        float faceHeight = (element.to.y - element.from.y) / 2;
+        float faceDepth = (element.to.z - element.from.z) / 2;
 
-        // Out of the entire block, just the element's dimensions
-        float faceWidth = (element.to.x - element.from.x)  /2;
-        float faceHeight = (element.to.y - element.from.y) /2;
-        float faceDepth = (element.to.z - element.from.z)  /2;
-
-        // Get the position based on the element's dimensions and chunk position
         float facePositionX = element.from.x + blockPositionX;
         float facePositionY = element.from.y + blockPositionY;
         float facePositionZ = element.from.z + blockPositionZ;
 
-        // Create the meshPartName for this face
         String meshPartName = block.getDomain().concat("_").concat(block.getRegistryName()).concat("_").concat(face);
+        Material material = materialCache.computeIfAbsent(texture, tKey -> new Material(
+            TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(tKey)),
+            new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+        ));
 
-        // Get the material from the face texture
-        MeshPartBuilder builder = faceMeshPartBuilderCache.computeIfAbsent(meshPartName, key -> {
-            Material material = materialCache.computeIfAbsent(texture, tKey ->
-                new Material(texture,
-                    TextureAttribute.createDiffuse(Main.textureLoader.loadTexture(tKey)),
-                    new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA))
-            );
+        MeshPartBuilder builder = modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
+            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
+            material);
+            //meshCache.computeIfAbsent( meshPartName, key -> modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
+            //VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
+            //material)); // this is faster but has issues since it will use random to me and other materials
 
-            //Gdx.app.log("greedymesher", meshPartName.concat(" ").concat(face).concat(" ").concat(texture));
-
-            return modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
-                VertexAttributes.Usage.Position |
-                    VertexAttributes.Usage.Normal |
-                    VertexAttributes.Usage.TextureCoordinates,
-                material);
-        });
-
-        //if (!Objects.equals(material.id, texture)) return;
-
-        // Refactor using a switch statement to handle the different faces
         switch (face) {
-            case "top" ->
-                makeTopFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-            case "bottom" ->
-                makeBottomFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-            case "north" ->
-                makeNorthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-            case "south" ->
-                makeSouthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-            case "west" ->
-                makeWestFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
-            case "east" ->
-                makeEastFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+            case "top" -> makeTopFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+            case "bottom" -> makeBottomFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+            case "north" -> makeNorthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+            case "south" -> makeSouthFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+            case "west" -> makeWestFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
+            case "east" -> makeEastFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
         }
     }
 
+    private boolean isFaceNotVisible(Chunk chunk, int x, int y, int z, String face) {
+        Block neighbor = switch (face) {
+            case "top" -> chunk.getBlock(x, y + 1, z);
+            case "bottom" -> chunk.getBlock(x, y - 1, z);
+            case "north" -> chunk.getBlock(x, y, z - 1);
+            case "south" -> chunk.getBlock(x, y, z + 1);
+            case "west" -> chunk.getBlock(x - 1, y, z);
+            case "east" -> chunk.getBlock(x + 1, y, z);
+            default -> null;
+        };
+        return neighbor != null && (!neighbor.isAir());
+    }
+
+    /**
+     * Check if a block can be culled (hidden) based on its neighbors
+     * @param chunk Chunk the block is in
+     * @param x X coordinate of the block
+     * @param y Y coordinate of the block
+     * @param z Z coordinate of the block
+     * @return True if the block can be culled, false otherwise
+     */
+    public static boolean canCullBlock(Chunk chunk, int x, int y, int z) {
+        Block topBlock = chunk.getBlock(x, y +1, z);
+        Block bottomBlock = chunk.getBlock(x, y - 1, z);
+        Block frontBlock = chunk.getBlock(x, y , z +1);
+        Block backBlock = chunk.getBlock(x, y , z -1);
+        Block leftBlock = chunk.getBlock(x - 1, y, z);
+        Block rightBlock = chunk.getBlock(x + 1, y, z);
+
+        boolean result;
+
+        result = !topBlock.isAir() &&
+            !bottomBlock.isAir() &&
+            !frontBlock.isAir() &&
+            !backBlock.isAir() &&
+            !leftBlock.isAir() &&
+            !rightBlock.isAir();
+
+        result = !topBlock.isTransparent() &&
+            !bottomBlock.isTransparent() &&
+            !frontBlock.isTransparent() &&
+            !backBlock.isTransparent() &&
+            !leftBlock.isTransparent() &&
+            !rightBlock.isTransparent() && result;
+
+        // Check all six neighbors
+        return result;
+    }
 
     private void makeEastFace(MeshPartBuilder meshPartBuilder, float facePositionX, float faceWidth, float facePositionY, float faceHeight, float facePositionZ, float faceDepth) {
         meshPartBuilder.rect(
@@ -192,84 +217,6 @@ public class GreedyMesher {
         );
     }
 
-    /**
-     * Check if the face of the block is visible
-     *
-     * @param chunk Chunk
-     * @param x     X coordinate of the block
-     * @param y     Y coordinate of the block
-     * @param z     Z coordinate of the block
-     * @param face  Face direction
-     * @return True if the face is visible, false otherwise
-     */
-    private boolean isFaceNotVisible(Chunk chunk, int x, int y, int z, String face) {
-        Block neighbor;
-        switch (face) {
-            case "top":
-                neighbor = chunk.getBlock(x, y + 1, z);
-                break;
-            case "bottom":
-                neighbor = chunk.getBlock(x, y - 1, z);
-                break;
-            case "north":
-                neighbor = chunk.getBlock(x, y, z - 1);
-                break;
-            case "south":
-                neighbor = chunk.getBlock(x, y, z + 1);
-                break;
-            case "west":
-                neighbor = chunk.getBlock(x - 1, y, z);
-                break;
-            case "east":
-                neighbor = chunk.getBlock(x + 1, y, z);
-                break;
-            default:
-                return true; // Unknown face
-        }
-        return !neighbor.isAir() || !neighbor.isTransparent(); // Render the face if the neighboring block is air
-    }
-
-    /**
-     * Check if a block can be culled (hidden) based on its neighbors
-     * @param chunk Chunk the block is in
-     * @param x X coordinate of the block
-     * @param y Y coordinate of the block
-     * @param z Z coordinate of the block
-     * @return True if the block can be culled, false otherwise
-     */
-    public static boolean canCullBlock(Chunk chunk, int x, int y, int z) {
-        Block topBlock = chunk.getBlock(x, y +1, z);
-        Block bottomBlock = chunk.getBlock(x, y - 1, z);
-        Block frontBlock = chunk.getBlock(x, y , z +1);
-        Block backBlock = chunk.getBlock(x, y , z -1);
-        Block leftBlock = chunk.getBlock(x - 1, y, z);
-        Block rightBlock = chunk.getBlock(x + 1, y, z);
-
-        boolean result;
-
-        result = !topBlock.isAir() &&
-            !bottomBlock.isAir() &&
-            !frontBlock.isAir() &&
-            !backBlock.isAir() &&
-            !leftBlock.isAir() &&
-            !rightBlock.isAir();
-
-        result = !topBlock.isTransparent() &&
-            !bottomBlock.isTransparent() &&
-            !frontBlock.isTransparent() &&
-            !backBlock.isTransparent() &&
-            !leftBlock.isTransparent() &&
-            !rightBlock.isTransparent() && result;
-
-        // Check all six neighbors
-        return result;
-    }
-
-    public void dispose() {
-        modelCache.values().forEach(Model::dispose);
-        modelCache.clear();
-    }
-
     public void cullChunks(Vector3 position) {
         modelCache.values().forEach(Model::dispose);
         modelCache.keySet().clear();
@@ -277,6 +224,12 @@ public class GreedyMesher {
 
 
     public void clearMaterialCache() {
+        materialCache.clear();
+    }
+
+    public void dispose() {
+        modelCache.values().forEach(Model::dispose);
+        modelCache.clear();
         materialCache.clear();
     }
 }

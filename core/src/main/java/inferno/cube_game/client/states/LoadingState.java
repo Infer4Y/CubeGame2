@@ -60,10 +60,15 @@ public class LoadingState extends GameState {
         timer += deltaTime;
 
         if (rendering) return;
+        if (font == null
+            || shapeRenderer == null
+            || initializationStageLayout == null
+            || currentItemLayout == null
+            || batch == null) return;
 
         switch (currentStep) {
             case PRE_INITIALIZATION:
-                if (timer > .5f) {
+                if (timer > .25f) {
                     currentStep = LoadStep.REGISTER_BLOCKS;
                     timer = 0f;
                     loadingProgress = 0;
@@ -75,10 +80,10 @@ public class LoadingState extends GameState {
                 break;
 
             case REGISTER_BLOCKS:
-                if (currentBlockIndex < blockNames.size() && timer > 0.25f) {
+                if (currentBlockIndex < blockNames.size() && timer > 0.15f) {
                     initializationStageLayout.setText(font, "Registering Blocks");
                     currentBlockIndex++;
-                    loadingProgress += 0.2f; // Increment loading progress
+                    loadingProgress += 0.05f; // Increment loading progress
                     timer = 0f; // Reset timer for next block
                 } else if (currentBlockIndex >= blockNames.size()) {
                     currentStep = LoadStep.REGISTER_ITEMS;
@@ -91,10 +96,10 @@ public class LoadingState extends GameState {
                 break;
 
             case REGISTER_ITEMS:
-                if (currentItemIndex < itemNames.size() && timer > 0.25f) {
+                if (currentItemIndex < itemNames.size() && timer > 0.15f) {
                     initializationStageLayout.setText(font, "Registering Items");
                     currentItemIndex++;
-                    loadingProgress += 0.2f; // Increment loading progress
+                    loadingProgress += 0.01f; // Increment loading progress
                     timer = 0f; // Reset timer for next item
                 } else if (currentItemIndex >= itemNames.size()) {
                     currentStep = LoadStep.POST_INITIALIZATION;
@@ -105,10 +110,10 @@ public class LoadingState extends GameState {
                 break;
 
             case POST_INITIALIZATION:
-                if (timer > .2f) {
+                if (timer > .15f) {
                     currentStep = LoadStep.DONE;
                 }
-                loadingProgress += 0.25f;
+                loadingProgress += 0.05f;
                 initializationStageLayout.setText(font, "Post-Initialization...");
                 break;
 

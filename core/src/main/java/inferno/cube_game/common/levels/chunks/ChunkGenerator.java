@@ -26,8 +26,8 @@ public class ChunkGenerator {
                 double worldHillX = worldX / 128.0;
                 double worldHillZ = worldZ / 128.0;
 
-                double worldMountainX = worldX / 192.0;
-                double worldMountainZ = worldZ / 192.0;
+                double worldMountainX = worldX / 16.0;
+                double worldMountainZ = worldZ / 16.0;
 
                 double worldDetailX = worldX / 4.0;
                 double worldDetailZ = worldZ / 4.0;

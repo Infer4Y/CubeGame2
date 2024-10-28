@@ -24,7 +24,7 @@ public class DynamicSky {
 
     public void update(float deltaTime) {
         // Update the time of day
-        timeOfDay += deltaTime / (60); // Simulate 1 in-game day every 60 seconds
+        timeOfDay += deltaTime / (6000); // Simulate 1 in-game day every 6000 seconds
         if (timeOfDay > 1) {
             timeOfDay = 0;
         }
