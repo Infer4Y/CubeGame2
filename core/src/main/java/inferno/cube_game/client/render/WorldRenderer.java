@@ -36,13 +36,13 @@ public class WorldRenderer {
 
     public WorldRenderer(Camera camera, Environment environment) {
         this.world = new World(); // Generate a new world
-        this.batch = new ModelBatch(new DefaultShaderProvider() {
-            @Override
-            protected Shader createShader(Renderable renderable) {
-                return new WireframeShader(renderable, config);
-            }
-        });
-            //new ModelBatch();
+        this.batch = //new ModelBatch(new DefaultShaderProvider() {
+        //    @Override
+        //    protected Shader createShader(Renderable renderable) {
+        //        return new WireframeShader(renderable, config);
+        //    }
+        //});
+            new ModelBatch();
         Gdx.input.setCursorCatched(true); // Capture the mouse
         feetPosition = camera.position.cpy(); // Set the feet position to the camera position
         this.environment = environment;
@@ -137,6 +137,11 @@ public class WorldRenderer {
             int chunkX = (int) loadedChunk.x;
             int chunkY = (int) loadedChunk.y;
             int chunkZ = (int) loadedChunk.z;
+            int chunkXWithOffSet = (int) loadedChunk.x * Chunk.CHUNK_SIZE;
+            int chunkYWithOffSet = (int) loadedChunk.y * Chunk.CHUNK_SIZE;
+            int chunkZWithOffSet = (int) loadedChunk.z * Chunk.CHUNK_SIZE;
+
+            if (!camera.frustum.pointInFrustum(chunkXWithOffSet,chunkYWithOffSet,chunkZWithOffSet)) return;
 
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
 
@@ -148,7 +153,7 @@ public class WorldRenderer {
             if (chunkModel == null) return;
 
             chunkInstance = new ModelInstance(chunkModel);
-            chunkInstance.transform.setToTranslation(chunk.getChunkX() * Chunk.CHUNK_SIZE, chunk.getChunkY() * Chunk.CHUNK_SIZE, chunk.getChunkZ() * Chunk.CHUNK_SIZE);
+            chunkInstance.transform.setToTranslation(chunkX * Chunk.CHUNK_SIZE, chunkY * Chunk.CHUNK_SIZE, chunkZ * Chunk.CHUNK_SIZE);
             models.add(chunkInstance);
             chunkModel = null;
             chunkInstance = null;

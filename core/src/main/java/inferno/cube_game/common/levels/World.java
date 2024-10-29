@@ -25,7 +25,7 @@ public class World {
     private final ConcurrentHashMap<Vector3, Future<Chunk>> loadingChunks; // Track chunks being generated
     private final ExecutorService chunkGeneratorExecutor;
     private int chunkLoadRadius = 32; // Number of chunks to load around the player
-    private int chunkLoadVisableRadius = 1; // Number of chunks to load around the player
+    private int chunkLoadVisableRadius = 8; // Number of chunks to load around the player
     private long seed = 0; //(System.currentTimeMillis() + System.nanoTime()) / 2; // World generation seed
     private final ChunkGenerator chunkGenerator = new ChunkGenerator(seed);
     private long lastChunkUnloadTime = System.currentTimeMillis();

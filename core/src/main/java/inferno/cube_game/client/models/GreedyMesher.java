@@ -1,5 +1,6 @@
 package inferno.cube_game.client.models;
 
+import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.*;
@@ -22,7 +23,6 @@ public class GreedyMesher {
     private final ConcurrentHashMap<String, Model> modelCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, MeshPartBuilder> meshCache = new ConcurrentHashMap<>();
 
-
     public Model generateMesh(Chunk chunk) {
         final ModelBuilder modelBuilder = new ModelBuilder();
         String chunkKey = new Vector3(chunk.getChunkX(), chunk.getChunkY(), chunk.getChunkZ()).toString();
@@ -34,7 +34,9 @@ public class GreedyMesher {
         }
 
         int chunkSize = Chunk.CHUNK_SIZE;
+
         modelBuilder.begin();
+
         boolean hasVisibleFaces = false;
 
         for (int blockPositionX = 0; blockPositionX < chunkSize; blockPositionX++) {
@@ -65,7 +67,6 @@ public class GreedyMesher {
             }
         }
 
-
         Model model = modelBuilder.end();
 
         clearMaterialCache();
@@ -92,7 +93,8 @@ public class GreedyMesher {
             new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         ));
 
-        MeshPartBuilder builder = modelBuilder.part(block.getDomain().concat(":").concat(block.getRegistryName()),
+        modelBuilder.node().id = meshPartName;
+        MeshPartBuilder builder = modelBuilder.part(meshPartName,
             GL20.GL_TRIANGLES,
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
             material);

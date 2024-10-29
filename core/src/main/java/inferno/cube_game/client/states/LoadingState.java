@@ -76,7 +76,7 @@ public class LoadingState extends GameState {
                     blockNames = BlockRegistry.getRegisteredBlockNames(); // Get the names after registration
                 }
                 loadingProgress += 0.05f;
-                initializationStageLayout.setText(font, "Pre-Initialization...");
+                synchronized (initializationStageLayout){ initializationStageLayout.setText(font, "Pre-Initialization..."); }
                 break;
 
             case REGISTER_BLOCKS:
