@@ -2,6 +2,7 @@ package inferno.cube_game.client.loaders;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonValue;
@@ -25,14 +26,14 @@ import java.util.Map;
 public class BlockModelOven {
     private static final float SCALE_FACTOR = 1f / 16f; // Define the scaling factor for the block model elements (1/16) to match the block size
 
-    private final HashMap<String, BlockModel> modelCache; // Cache for models to avoid reloading them every time they are needed
+    private final HashMap<String, BlockModel> blockModelCache; // Cache for models to avoid reloading them every time they are needed
     private final Json json; // JSON parser for loading block models
 
     /**
      * Create a new BlockModelOven
      */
     public BlockModelOven() {
-        this.modelCache = new HashMap<>();                                     // Initialize the model cache
+        this.blockModelCache = new HashMap<>();                                // Initialize the Block Model cache
         this.json = new Json();                                                // Initialize the JSON parser
         json.setSerializer(Vector3.class, new Vector3Serializer());            // Register the Vector3 serializer
         json.setSerializer(Map.class, new Json.ReadOnlySerializer<Map>() {
@@ -50,10 +51,10 @@ public class BlockModelOven {
      */
     public BlockModel createOrGetBlockModel(Block block) {
         if (block.isAir()) return null;
-        
+
         String blockRegistryName = block.getRegistryName();
-        if (modelCache.containsKey(blockRegistryName)) {
-            return modelCache.get(blockRegistryName);
+        if (blockModelCache.containsKey(blockRegistryName)) {
+            return blockModelCache.get(blockRegistryName);
         }
 
         // Load the model config (e.g., .json, .obj, etc.)
@@ -75,7 +76,7 @@ public class BlockModelOven {
                 blockModel.textures.values().forEach(Main.textureLoader::loadTexture);
             }
 
-            modelCache.put(blockRegistryName, blockModel); // Cache the block model
+            blockModelCache.put(blockRegistryName, blockModel); // Cache the block model
             return blockModel; // Return the block model
         } catch (SerializationException exception) {
             Gdx.app.error("BlockModelOven", "Failed to load block model for " + blockRegistryName);

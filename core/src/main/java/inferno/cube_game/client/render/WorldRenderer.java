@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import inferno.cube_game.client.models.GreedyMesher;
+import inferno.cube_game.client.models.VoxelChunk;
 import inferno.cube_game.client.render.shader.WireframeShader;
 import inferno.cube_game.common.levels.World;
 import inferno.cube_game.common.levels.chunks.Chunk;
@@ -131,6 +132,7 @@ public class WorldRenderer {
         int y = (int) (frustumPosition.y / Chunk.CHUNK_SIZE);
         int z = (int) (frustumPosition.z / Chunk.CHUNK_SIZE);
 
+        batch.begin(camera);
 
         // Load nearby chunks
         world.getChunkKeysToLoad(x, y, z).forEach(loadedChunk -> {
@@ -149,23 +151,18 @@ public class WorldRenderer {
             if (chunk.onlyAir()) return;
             if (!checkSurrondingChunksForAir(world, chunk)) return;
 
-            chunkModel = greedyMesher.generateMesh(chunk);
-            if (chunkModel == null) return;
+            batch.render(new VoxelChunk(chunk));
+            //chunkModel = greedyMesher.generateMesh(chunk);
+            //if (chunkModel == null) return;
 
-            chunkInstance = new ModelInstance(chunkModel);
-            chunkInstance.transform.setToTranslation(chunkX * Chunk.CHUNK_SIZE, chunkY * Chunk.CHUNK_SIZE, chunkZ * Chunk.CHUNK_SIZE);
-            models.add(chunkInstance);
-            chunkModel = null;
-            chunkInstance = null;
+            //chunkInstance = new ModelInstance(chunkModel);
+            //chunkInstance.transform.setToTranslation(chunkX * Chunk.CHUNK_SIZE, chunkY * Chunk.CHUNK_SIZE, chunkZ * Chunk.CHUNK_SIZE);
+            //models.add(chunkInstance);
+            //chunkModel = null;
+            //chunkInstance = null;
         });
 
 
-        chunkModelCache.begin();
-        chunkModelCache.add(models);
-        chunkModelCache.end();
-
-        batch.begin(camera);
-        batch.render(chunkModelCache, environment);
         batch.end();
     }
 

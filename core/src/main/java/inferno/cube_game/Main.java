@@ -5,11 +5,13 @@ import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder;
 import inferno.cube_game.client.loaders.BlockModelOven;
 import inferno.cube_game.client.loaders.TextureLoader;
+import inferno.cube_game.client.models.blocks.BlockModels;
 import inferno.cube_game.client.states.GameStateManager;
-import inferno.cube_game.client.states.LoadingState;
+import inferno.cube_game.client.states.MainMenuState;
+import inferno.cube_game.common.blocks.Block;
+import inferno.cube_game.common.registries.BlockRegistry;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -31,8 +33,17 @@ public class Main extends ApplicationAdapter {
         batch = new SpriteBatch();
         font = new BitmapFont();
         font.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+
+        BlockRegistry.registerDefaults();
+        for (String blockNames : BlockRegistry.getRegisteredBlockNames()){
+            Block block = BlockRegistry.getBlock(blockNames);
+            if (block == null || block.isAir()) continue;
+            BlockModels.addBlockModel(block,
+                blockModelOven.createOrGetBlockModel(block));
+        }
+
         GameStateManager.batch = new SpriteBatch();
-        GameStateManager.setState(new LoadingState(batch)); // Start with LoadingState
+        GameStateManager.setState(new MainMenuState(batch)); // Start with LoadingState
 
         AtomicLong lastGameStateManagerUpdate = new AtomicLong();
 
