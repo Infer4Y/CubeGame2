@@ -10,7 +10,7 @@ import java.util.stream.IntStream;
 
 public class Chunk implements Serializable {
     public static final int CHUNK_SIZE = 16;
-    private byte[] blockPaletteIndices;
+    private short[] blockPaletteIndices;
     private Block[] palette; // Array-based palette
     private short paletteSize;
     private int chunkX, chunkY, chunkZ;
@@ -19,9 +19,9 @@ public class Chunk implements Serializable {
         this.chunkX = chunkX;
         this.chunkY = chunkY;
         this.chunkZ = chunkZ;
-        this.blockPaletteIndices = new byte[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
-        Arrays.fill(blockPaletteIndices, (byte) 0);
-        this.palette = new Block[256];
+        this.blockPaletteIndices = new short[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
+        Arrays.fill(blockPaletteIndices, (short) 0);
+        this.palette = new Block[65535];
         this.palette[0] = BlockRegistry.AIR_BLOCK; // Assign index 0 to AIR_BLOCK
         this.paletteSize = 1;
 
@@ -29,28 +29,28 @@ public class Chunk implements Serializable {
     }
 
     private void generateTerrain(int[] heightMap) {
-        IntStream.range(0, CHUNK_SIZE).forEach(x -> {
-            IntStream.range(0, CHUNK_SIZE).forEach(z -> {
-                int height = heightMap[x * CHUNK_SIZE + z];
-                int chunkYOffset = (chunkY * CHUNK_SIZE);
+        for (int index = 0; index < Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE; index++) {
+            int x = index / Chunk.CHUNK_SIZE;
+            int z = index % Chunk.CHUNK_SIZE;
+            int height = heightMap[x * CHUNK_SIZE + z];
+            int chunkYOffset = (chunkY * CHUNK_SIZE);
 
-                IntStream.range(0, CHUNK_SIZE).forEach(y -> {
-                    Block block = BlockRegistry.AIR_BLOCK;
-                    if (y + chunkYOffset == height) {
-                        block = BlockRegistry.GRASS_BLOCK;
-                    } else if (y + chunkYOffset <= height - 1 && y + chunkYOffset > height - 4) {
-                        block = BlockRegistry.DIRT_BLOCK;
-                    } else if (y + chunkYOffset <= height - 4) {
-                        block = BlockRegistry.STONE_BLOCK;
-                    }
+            for (int y = 0; y < CHUNK_SIZE; y++) {
+                Block block = BlockRegistry.AIR_BLOCK;
+                if (y + chunkYOffset == height) {
+                    block = BlockRegistry.GRASS_BLOCK;
+                } else if (y + chunkYOffset <= height - 1 && y + chunkYOffset > height - 4) {
+                    block = BlockRegistry.DIRT_BLOCK;
+                } else if (y + chunkYOffset <= height - 4) {
+                    block = BlockRegistry.STONE_BLOCK;
+                }
 
-                    if (block.isAir()) return;
+                if (block.isAir()) continue;
 
-                    byte paletteIndex = getOrAddToPalette(block);
-                    blockPaletteIndices[x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z] = paletteIndex;
-                });
-            });
-        });
+                short paletteIndex = getOrAddToPalette(block);
+                blockPaletteIndices[x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z] = paletteIndex;
+            }
+        }
     }
 
     public boolean isFaceNotVisible(int x, int y, int z, String face) {
@@ -91,7 +91,7 @@ public class Chunk implements Serializable {
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
             return BlockRegistry.AIR_BLOCK;
         }
-        byte paletteIndex = blockPaletteIndices[x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z];
+        short paletteIndex = blockPaletteIndices[x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z];
         return palette[paletteIndex];
     }
 
@@ -99,12 +99,12 @@ public class Chunk implements Serializable {
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
             return;
         }
-        byte paletteIndex = getOrAddToPalette(block);
+        short paletteIndex = getOrAddToPalette(block);
         blockPaletteIndices[x * CHUNK_SIZE * CHUNK_SIZE + y * CHUNK_SIZE + z] = paletteIndex;
     }
 
-    private byte getOrAddToPalette(Block block) {
-        for (byte i = 0; i < paletteSize; i++) {
+    private short getOrAddToPalette(Block block) {
+        for (short i = 0; i < paletteSize; i++) {
             if (palette[i] == block) {
                 return i;
             }
@@ -115,7 +115,7 @@ public class Chunk implements Serializable {
         }
 
         palette[paletteSize] = block;
-        return (byte) paletteSize++;
+        return paletteSize++;
     }
 
     public int getChunkX() {
@@ -135,13 +135,13 @@ public class Chunk implements Serializable {
     }
 
     public boolean hasNoAirInAnyLayer() {
-        for (byte block : blockPaletteIndices) {
+        for (short block : blockPaletteIndices) {
             if (block == 0) return false;
         }
         return true;
     }
 
-    public byte[] getBlocks() {
+    public short[] getBlocks() {
         return blockPaletteIndices.clone();
     }
 

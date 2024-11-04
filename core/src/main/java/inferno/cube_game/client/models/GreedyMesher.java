@@ -20,12 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class GreedyMesher {
     private final ConcurrentHashMap<String, Material> materialCache = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Model> modelCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Vector3, Model> modelCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, MeshPartBuilder> meshCache = new ConcurrentHashMap<>();
 
     public Model generateMesh(Chunk chunk) {
-        final ModelBuilder modelBuilder = new ModelBuilder();
-        String chunkKey = new Vector3(chunk.getChunkX(), chunk.getChunkY(), chunk.getChunkZ()).toString();
+        Vector3 chunkKey = new Vector3(chunk.getChunkX(), chunk.getChunkY(), chunk.getChunkZ());
 
         // Return cached model if it exists
         Model cachedModel = modelCache.get(chunkKey);
@@ -35,6 +34,7 @@ public class GreedyMesher {
 
         int chunkSize = Chunk.CHUNK_SIZE;
 
+        final ModelBuilder modelBuilder = new ModelBuilder();
         modelBuilder.begin();
 
         boolean hasVisibleFaces = false;
@@ -72,7 +72,10 @@ public class GreedyMesher {
         clearMaterialCache();
         meshCache.clear();
 
-        if (!hasVisibleFaces) return null;
+        if (!hasVisibleFaces) {
+            model.dispose();
+            return modelCache.put(chunkKey, new Model());
+        }
 
         return modelCache.put(chunkKey, model);
     }
@@ -94,13 +97,13 @@ public class GreedyMesher {
         ));
 
         modelBuilder.node().id = meshPartName;
-        MeshPartBuilder builder = modelBuilder.part(meshPartName,
-            GL20.GL_TRIANGLES,
-            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
-            material);
-            //meshCache.computeIfAbsent( meshPartName, key -> modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
+        MeshPartBuilder builder = //modelBuilder.part(meshPartName,
+            //GL20.GL_TRIANGLES,
             //VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
-            //material)); // this is faster but has issues since it will use random to me and other materials
+            //material);
+            meshCache.computeIfAbsent( meshPartName, key -> modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
+            VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
+            material)); // this is faster but has issues since it will use random to me and other materials
 
         switch (face) {
             case "top" -> makeTopFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
@@ -173,8 +176,8 @@ public class GreedyMesher {
     }
 
     public void cullChunks(Vector3 position) {
-        modelCache.values().forEach(Model::dispose);
-        modelCache.keySet().clear();
+        //modelCache.values().forEach(Model::dispose);
+        //modelCache.keySet().clear();
     }
 
     public void clearMaterialCache() {

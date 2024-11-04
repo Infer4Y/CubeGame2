@@ -30,9 +30,9 @@ public class World {
     private final ChunkGenerator chunkGenerator = new ChunkGenerator(seed);
     private long lastChunkUnloadTime = System.currentTimeMillis();
 
-    public static final byte[] emptyChunk = new byte[Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE];
+    public static final short[] emptyChunk = new short[Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE * Chunk.CHUNK_SIZE];
     static {
-        Arrays.fill(emptyChunk, (byte) 0);
+        Arrays.fill(emptyChunk, (short) 0);
     }
 
     /**
@@ -162,7 +162,8 @@ public class World {
         int diameter = chunkLoadRadius * 2; // Diameter of the chunk load radius
         ArrayList<Vector3> chunkKeysToLoad = new ArrayList<>(diameter * diameter * diameter); // List of chunk keys to load
         // Iterate over the range of chunks to load around the player
-        IntStream.range(0, diameter * diameter * diameter).forEach(index -> {
+
+        for (int index = 0; index < diameter * diameter * diameter; index++) {
             int z = index % diameter;
             int y = (index / diameter) % diameter;
             int x = index / (diameter * diameter);
@@ -174,7 +175,8 @@ public class World {
 
             // Add the chunk key to the list of chunks to load
             chunkKeysToLoad.add(getChunkKey(chunkX, chunkY, chunkZ));
-        });
+        }
+
         return chunkKeysToLoad;
     }
 

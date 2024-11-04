@@ -58,8 +58,8 @@ public class WorldRenderer {
         renderChunks(camera);
 
         if (System.currentTimeMillis() - lastCull >= 60 * 10000) {
-            greedyMesher.cullChunks(camera.position);
-            greedyMesher.clearMaterialCache();
+            //greedyMesher.cullChunks(camera.position);
+            //greedyMesher.clearMaterialCache();
             lastCull = System.currentTimeMillis();
         }
     }
@@ -139,11 +139,11 @@ public class WorldRenderer {
             int chunkX = (int) loadedChunk.x;
             int chunkY = (int) loadedChunk.y;
             int chunkZ = (int) loadedChunk.z;
-            int chunkXWithOffSet = (int) loadedChunk.x * Chunk.CHUNK_SIZE;
-            int chunkYWithOffSet = (int) loadedChunk.y * Chunk.CHUNK_SIZE;
-            int chunkZWithOffSet = (int) loadedChunk.z * Chunk.CHUNK_SIZE;
+            //int chunkXWithOffSet = (int) loadedChunk.x * Chunk.CHUNK_SIZE;
+            //int chunkYWithOffSet = (int) loadedChunk.y * Chunk.CHUNK_SIZE;
+            //int chunkZWithOffSet = (int) loadedChunk.z * Chunk.CHUNK_SIZE;
 
-            if (!camera.frustum.pointInFrustum(chunkXWithOffSet,chunkYWithOffSet,chunkZWithOffSet)) return;
+            //if (!camera.frustum.pointInFrustum(chunkXWithOffSet,chunkYWithOffSet,chunkZWithOffSet)) return;
 
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
 
@@ -151,17 +151,18 @@ public class WorldRenderer {
             if (chunk.onlyAir()) return;
             if (!checkSurrondingChunksForAir(world, chunk)) return;
 
-            batch.render(new VoxelChunk(chunk));
-            //chunkModel = greedyMesher.generateMesh(chunk);
-            //if (chunkModel == null) return;
+            //batch.render(new VoxelChunk(chunk));
+            chunkModel = greedyMesher.generateMesh(chunk);
+            if (chunkModel == null) return;
 
-            //chunkInstance = new ModelInstance(chunkModel);
-            //chunkInstance.transform.setToTranslation(chunkX * Chunk.CHUNK_SIZE, chunkY * Chunk.CHUNK_SIZE, chunkZ * Chunk.CHUNK_SIZE);
-            //models.add(chunkInstance);
-            //chunkModel = null;
-            //chunkInstance = null;
+            chunkInstance = new ModelInstance(chunkModel);
+            chunkInstance.transform.setToTranslation(chunkX * Chunk.CHUNK_SIZE, chunkY * Chunk.CHUNK_SIZE, chunkZ * Chunk.CHUNK_SIZE);
+            models.add(chunkInstance);
+            chunkModel = null;
+            chunkInstance = null;
         });
 
+        batch.render(models, environment);
 
         batch.end();
     }

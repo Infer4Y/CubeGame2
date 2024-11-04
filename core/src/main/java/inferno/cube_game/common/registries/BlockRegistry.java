@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 public class BlockRegistry {
     private static final HashMap<String, Block> BLOCKS = new HashMap<>();
 
+
     public static Block AIR_BLOCK;
     public static Block DIRT_BLOCK;
     public static Block GRASS_BLOCK;
