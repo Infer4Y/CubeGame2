@@ -21,6 +21,7 @@ public class BlockModels {
 
 
     public static Model getBlockModel(final Block block) {
+        if (block.isAir()) return null;
         return blockModels.get(block);
     }
 

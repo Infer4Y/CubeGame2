@@ -4,17 +4,11 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.*;
-import com.badlogic.gdx.graphics.g3d.utils.DefaultShaderProvider;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.utils.Array;
 import inferno.cube_game.client.models.GreedyMesher;
-import inferno.cube_game.client.models.VoxelChunk;
-import inferno.cube_game.client.render.shader.WireframeShader;
 import inferno.cube_game.common.levels.World;
 import inferno.cube_game.common.levels.chunks.Chunk;
-
-import static com.badlogic.gdx.graphics.GL20.GL_FRONT_AND_BACK;
 
 
 public class WorldRenderer {
@@ -28,12 +22,15 @@ public class WorldRenderer {
     private Vector3 feetPosition; // Player's feet position
     private final float eyeOffset = 1.4f; // Camera height offset from feet (eye level)
     private float lastCull = 0; // Last time chunks were culled
-    private Model chunkModel;
     private ModelInstance chunkInstance;
     private GreedyMesher greedyMesher;
     private Environment environment;
 
     ModelCache chunkModelCache;
+
+    Model globalModel;
+
+    ModelInstance instance;
 
     public WorldRenderer(Camera camera, Environment environment) {
         this.world = new World(); // Generate a new world
@@ -49,6 +46,8 @@ public class WorldRenderer {
         this.environment = environment;
         this.greedyMesher = new GreedyMesher();
         chunkModelCache = new ModelCache();
+        globalModel = new Model();
+        instance = new ModelInstance(globalModel);
     }
 
     public void render(Camera camera, float deltaTime) {
@@ -126,24 +125,22 @@ public class WorldRenderer {
     private void renderChunks(Camera camera) {
         Vector3 frustumPosition = feetPosition;
 
-        Array<ModelInstance> models = new Array<>();
+        Renderable renderable = new Renderable();
+
+        instance.nodes.clear();
+        instance.model.meshes.clear();
+        instance.model.meshParts.clear();
+        instance.materials.clear();
 
         int x = (int) (frustumPosition.x / Chunk.CHUNK_SIZE);
         int y = (int) (frustumPosition.y / Chunk.CHUNK_SIZE);
         int z = (int) (frustumPosition.z / Chunk.CHUNK_SIZE);
-
-        batch.begin(camera);
 
         // Load nearby chunks
         world.getChunkKeysToLoad(x, y, z).forEach(loadedChunk -> {
             int chunkX = (int) loadedChunk.x;
             int chunkY = (int) loadedChunk.y;
             int chunkZ = (int) loadedChunk.z;
-            //int chunkXWithOffSet = (int) loadedChunk.x * Chunk.CHUNK_SIZE;
-            //int chunkYWithOffSet = (int) loadedChunk.y * Chunk.CHUNK_SIZE;
-            //int chunkZWithOffSet = (int) loadedChunk.z * Chunk.CHUNK_SIZE;
-
-            //if (!camera.frustum.pointInFrustum(chunkXWithOffSet,chunkYWithOffSet,chunkZWithOffSet)) return;
 
             Chunk chunk = world.getChunk(chunkX, chunkY, chunkZ);
 
@@ -152,17 +149,18 @@ public class WorldRenderer {
             if (!checkSurrondingChunksForAir(world, chunk)) return;
 
             //batch.render(new VoxelChunk(chunk));
-            chunkModel = greedyMesher.generateMesh(chunk);
-            if (chunkModel == null) return;
+            Model model = greedyMesher.generateMesh(chunk);
+            if (model == null) return;
 
-            chunkInstance = new ModelInstance(chunkModel);
-            chunkInstance.transform.setToTranslation(chunkX * Chunk.CHUNK_SIZE, chunkY * Chunk.CHUNK_SIZE, chunkZ * Chunk.CHUNK_SIZE);
-            models.add(chunkInstance);
-            chunkModel = null;
-            chunkInstance = null;
+            instance.nodes.addAll(model.nodes);
+            instance.model.meshes.addAll(model.meshes);
+            instance.model.meshParts.addAll(model.meshParts);
+            instance.materials.addAll(model.materials);
         });
 
-        batch.render(models, environment);
+        batch.begin(camera);
+
+        batch.render(instance, environment);
 
         batch.end();
     }
@@ -201,6 +199,7 @@ public class WorldRenderer {
         batch.dispose();
         shapeRenderer.dispose();
         chunkModelCache.dispose();
+        globalModel.dispose();
         // Dispose other resources if necessary
         world.shutdown();
     }

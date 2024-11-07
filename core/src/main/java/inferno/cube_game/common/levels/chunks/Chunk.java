@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 
 public class Chunk implements Serializable {
-    public static final int CHUNK_SIZE = 16;
+    public static final int CHUNK_SIZE = 12;
     private short[] blockPaletteIndices;
     private Block[] palette; // Array-based palette
     private short paletteSize;

@@ -1,6 +1,5 @@
 package inferno.cube_game.client.models;
 
-import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.*;
@@ -9,6 +8,8 @@ import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Pool;
 import inferno.cube_game.Main;
 import inferno.cube_game.client.models.blocks.BlockModel;
 import inferno.cube_game.client.models.blocks.BlockModel.Element;
@@ -17,6 +18,7 @@ import inferno.cube_game.common.levels.chunks.Chunk;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class GreedyMesher {
     private final ConcurrentHashMap<String, Material> materialCache = new ConcurrentHashMap<>();
@@ -25,6 +27,10 @@ public class GreedyMesher {
 
     public Model generateMesh(Chunk chunk) {
         Vector3 chunkKey = new Vector3(chunk.getChunkX(), chunk.getChunkY(), chunk.getChunkZ());
+
+        int chunkOffsetX = chunk.getChunkX() * Chunk.CHUNK_SIZE;
+        int chunkOffsetY = chunk.getChunkY() * Chunk.CHUNK_SIZE;
+        int chunkOffsetZ = chunk.getChunkZ() * Chunk.CHUNK_SIZE;
 
         // Return cached model if it exists
         Model cachedModel = modelCache.get(chunkKey);
@@ -59,7 +65,7 @@ public class GreedyMesher {
 
                             String textureKey = faceEntry.getValue();
                             makeMeshFace(modelBuilder, element, faceDirection, blockModel.textures.get(textureKey),
-                                blockPositionX, blockPositionY, blockPositionZ, block);
+                                blockPositionX + chunkOffsetX, blockPositionY + chunkOffsetY, blockPositionZ + chunkOffsetZ, block);
                             hasVisibleFaces = true;
                         }
                     }
@@ -97,13 +103,13 @@ public class GreedyMesher {
         ));
 
         modelBuilder.node().id = meshPartName;
-        MeshPartBuilder builder = //modelBuilder.part(meshPartName,
-            //GL20.GL_TRIANGLES,
-            //VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
-            //material);
-            meshCache.computeIfAbsent( meshPartName, key -> modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
+        MeshPartBuilder builder = modelBuilder.part(meshPartName,
+            GL20.GL_TRIANGLES,
             VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
-            material)); // this is faster but has issues since it will use random to me and other materials
+            material);
+            //meshCache.computeIfAbsent( meshPartName, key -> modelBuilder.part(meshPartName, GL20.GL_TRIANGLES,
+            //VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates,
+            //material)); // this is faster but has issues since it will use random to me and other materials
 
         switch (face) {
             case "top" -> makeTopFace(builder, facePositionX, faceWidth, facePositionY, faceHeight, facePositionZ, faceDepth);
@@ -189,4 +195,5 @@ public class GreedyMesher {
         modelCache.clear();
         materialCache.clear();
     }
+
 }
