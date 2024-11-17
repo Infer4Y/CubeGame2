@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 
 public class Chunk implements Serializable {
-    public static final int CHUNK_SIZE = 12;
+    public static final int CHUNK_SIZE = 16;
     private short[] blockPaletteIndices;
     private Block[] palette; // Array-based palette
     private short paletteSize;
@@ -21,7 +21,7 @@ public class Chunk implements Serializable {
         this.chunkZ = chunkZ;
         this.blockPaletteIndices = new short[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
         Arrays.fill(blockPaletteIndices, (short) 0);
-        this.palette = new Block[65535];
+        this.palette = new Block[4096];
         this.palette[0] = BlockRegistry.AIR_BLOCK; // Assign index 0 to AIR_BLOCK
         this.paletteSize = 1;
 
@@ -110,7 +110,7 @@ public class Chunk implements Serializable {
             }
         }
 
-        if (paletteSize >= 256) {
+        if (paletteSize >= 4096) {
             throw new RuntimeException("Palette overflow in chunk!");
         }
 

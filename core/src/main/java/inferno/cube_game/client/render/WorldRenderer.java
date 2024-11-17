@@ -125,8 +125,6 @@ public class WorldRenderer {
     private void renderChunks(Camera camera) {
         Vector3 frustumPosition = feetPosition;
 
-        Renderable renderable = new Renderable();
-
         instance.nodes.clear();
         instance.model.meshes.clear();
         instance.model.meshParts.clear();
